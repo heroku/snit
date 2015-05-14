@@ -1,0 +1,13 @@
+{application, snit,
+ [{description, "A SNI terminator library"},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {mod, {snit_app, []}},
+  {applications,
+   [kernel,
+    stdlib,
+    ssl
+   ]},
+  {env,[]},
+  {modules, []}
+ ]}.

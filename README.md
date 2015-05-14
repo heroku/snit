@@ -15,6 +15,15 @@ You'll need an Erlang version of 18-rc2 or newer. You can install one with
 
     $ kerl build git https://github.com/erlang/otp.git OTP-18.0-rc2 18.0-rc2
 
+Note that on OSX, you will need the newest cypher suites available.
+
+    $ brew update
+    $ brew upgrade openssl
+
+Note the version you have (for example, `1.0.2a-1`) and tell `kerl` to use it:
+
+    $ KERL_CONFIGURE_OPTIONS="--with-ssl=/usr/local/Cellar/openssl/1.0.2a-1" build git https://github.com/erlang/otp.git OTP-18.0-rc2 18.0-rc2
+
 The project itself relies on [rebar3](http://www.rebar3.org). [Install a
 copy](http://www.rebar3.org/v3.0/docs/getting-started) and compile the project:
 

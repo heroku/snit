@@ -21,7 +21,8 @@ start(Name, Acceptors, ListenPort, SNIFun, Protocol, ProtoOpts) ->
                {ciphers, Ciphers},
                {honor_cipher_order, true},
                {port, ListenPort},
-               {sni_fun, SNIFun}
+               {sni_fun, SNIFun},
+               {versions, ['tlsv1', 'tlsv1.1', 'tlsv1.2']}
                %% missing: reuse_session, reuse_sessions
               ],
     {ok, _} = ranch:start_listener(

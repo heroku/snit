@@ -15,7 +15,7 @@ You'll need an Erlang version of 18-rc2 or newer. You can install one with
 
     $ kerl build git https://github.com/erlang/otp.git OTP-18.0-rc2 18.0-rc2
 
-Note that on OSX, you will need the newest cypher suites available.
+Note that on OSX, you will need the newest cipher suites available.
 
     $ brew update
     $ brew upgrade openssl

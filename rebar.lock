@@ -1,4 +1,0 @@
-[{<<"ranch">>,
-  {git,"https://github.com/heroku/ranch.git",
-       {ref,"b9dffed6dd9f40e1af084d23e01265f8230a5f30"}},
-  0}].

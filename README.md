@@ -32,7 +32,22 @@ copy](http://www.rebar3.org/v3.0/docs/getting-started) and compile the project:
 Tests
 -----
 
-We don't have tests yet.
+    $ rebar3 ct
+
+Browser Tests
+-------------
+
+    $ rebar3 shell
+    1> application:ensure_all_started(snit).
+    snit:start(http, 10, 8080, fun(_) -> [
+        {certfile, "test/snit_basic_SUITE_data/cert.pem"},
+        {keyfile, "test/snit_basic_SUITE_data/key.pem"},
+        {cacertfile, "test/snit_basic_SUITE_data/cacerts.pem"}
+    ] end, snit_http_hello, []).
+
+Then open a browser to `$HOSTNAME:8080`. Do note that exceptions will need
+to be added on browsers (the test certificates use the OTP CA), and Chrome
+may never be happy with a custom certificate on localhost.
 
 Changelog
 ---------

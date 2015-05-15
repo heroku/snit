@@ -5,19 +5,19 @@
 -export([init/4]).
 
 start_link(Ref, Socket, Transport, Opts) ->
-	Pid = spawn_link(?MODULE, init, [Ref, Socket, Transport, Opts]),
-	{ok, Pid}.
+    Pid = spawn_link(?MODULE, init, [Ref, Socket, Transport, Opts]),
+    {ok, Pid}.
 
 init(Ref, Socket, Transport, _Opts = []) ->
-	ok = ranch:accept_ack(Ref),
-	loop(Socket, Transport).
+    ok = ranch:accept_ack(Ref),
+    loop(Socket, Transport).
 
 loop(Socket, Transport) ->
-	case Transport:recv(Socket, 0, 5000) of
-		{ok, Data} ->
+    case Transport:recv(Socket, 0, 5000) of
+        {ok, Data} ->
             lager:info("snit echo got ~p", [Data]),
-			Transport:send(Socket, Data),
-			loop(Socket, Transport);
-		_ ->
-			ok = Transport:close(Socket)
-	end.
+            Transport:send(Socket, Data),
+            loop(Socket, Transport);
+        _ ->
+            ok = Transport:close(Socket)
+    end.

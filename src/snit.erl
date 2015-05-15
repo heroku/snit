@@ -3,13 +3,16 @@
 %% @end
 %%%-------------------------------------------------------------------
 -module(snit).
--export([start/4]).
+-export([start/6, stop/1]).
 
 -include("snit.hrl").
 
 %% Assumes the snit application itself is started
--spec start(Name::atom(), Acceptors::pos_integer(), inet:port(), fun()) -> ok.
-start(Name, Acceptors, ListenPort, SNIFun) ->
+%% Should pick a proper proxy default to be usable, but we need to be
+%% able to override if only to support proxy protocol at some point.
+%% We could just package all the required modules for easy use.
+-spec start(Name::atom(), Acceptors::pos_integer(), inet:port(), fun(), module(), term()) -> ok.
+start(Name, Acceptors, ListenPort, SNIFun, Protocol, ProtoOpts) ->
     Ciphers = [Cipher ||
                   {_Name, Cipher} <-  element(2, application:get_env(snit,
                                                                      cipher_suites))],
@@ -26,6 +29,9 @@ start(Name, Acceptors, ListenPort, SNIFun) ->
                 Acceptors,
                 ranch_ssl,              % transport
                 SSLOpts,
-                snit_echo,              % protocol
-                []                      % protocol opts
+                Protocol,
+                ProtoOpts
                ).
+
+stop(Name) ->
+    ranch:stop_listener(Name).

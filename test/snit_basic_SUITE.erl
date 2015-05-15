@@ -44,13 +44,9 @@ init_per_testcase(connect_sni, Config) ->
 init_per_testcase(in_mem_connect, Config) ->
     snit:start(connect_sni, 2, 8001, fun test_sni_fun_mem/1, snit_echo, []),
     ets:new(test_tab, [public, named_table]),
-    {ok, CaCert0} = file:read_file(?config(data_dir, Config) ++ "cacerts.pem"),
-    [{_, CaCert}] = public_key:pem_decode(CaCert0),
     {ok, Cert0} = file:read_file(?config(data_dir, Config) ++ "cert.pem"),
-    Cert = public_key:pem_decode(Cert0),
-    {ok, Key0} = file:read_file(?config(data_dir, Config) ++ "key.pem"),
-    Key = public_key:pem_decode(Key0),
-    ets:insert(test_tab, {"memhost", {CaCert, Cert, Key}}),
+    [{_, Cert,_}] = public_key:pem_decode(Cert0),
+    ets:insert(test_tab, {"memhost", Cert}),
     Config;
 init_per_testcase(proxy, Config) ->
     {ok, Listen} = gen_tcp:listen(0, [{active, false}]),
@@ -156,8 +152,8 @@ test_sni_fun(SNIHostname) ->
 
 test_sni_fun_mem(SNIHostname) ->
     lager:debug("sni hostname: ~p", [SNIHostname]),
-    [{_, {CaCert, Cert, Key}}] = ets:lookup(test_tab, SNIHostname),
-    [{cacert, CaCert}, {cert, Cert}, {key, Key}].
+    [{_, Cert}] = ets:lookup(test_tab, SNIHostname),
+    [{cert, Cert}].
 
 listen(Listen) ->
     {ok, Sock} = gen_tcp:accept(Listen),

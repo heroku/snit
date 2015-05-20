@@ -37,17 +37,46 @@ Tests
 Browser Tests
 -------------
 
+The first step will be to add an hostfile entry on any client computer you
+will use to test browsers, pointing the `snihost.custom` domain to the
+computer on which the server is running (the self-signed certificate is
+signed using that domain and it must be used to work).
+
+First, make sure you know your server's IP (we aim for IPv4 here):
+
+- If the server is public, you can find it [by googling 'what is my
+  ip'](https://www.google.ca/search?q=parentheses+%28+%29&ie=utf-8&oe=utf-8&gws_rd=cr&ei=gpRcVZHsBsbfggSs34G4Dw#q=what+is+my+ip)
+- if it's on your local network, you can use `ifconfig -a inet` and look for
+  the address that is *not* on `lo0` (loopback, localhost) on OSX and Linux, or
+  `ipconfig /all` on Windows, and look for the `IPv4 Address` entry noted with
+  `(Preferred)` after it.
+- If it's on the same computer, use `127.0.0.1`.
+
+Then [find the host
+file](http://en.wikipedia.org/wiki/Hosts_%28file%29#Location_in_the_file_system),
+Add an entry in there saying:
+
+    127.0.0.1 snihost.custom
+
+(using whatever IP yours is rather than `127.0.0.1`). Everrything is set.
+Start the `snit` server:
+
     $ rebar3 shell
     1> application:ensure_all_started(snit).
     snit:start(http, 10, 8080, fun(_) -> [
-        {certfile, "test/snit_basic_SUITE_data/cert.pem"},
-        {keyfile, "test/snit_basic_SUITE_data/key.pem"},
-        {cacertfile, "test/snit_basic_SUITE_data/cacerts.pem"}
+        {certfile, "test/snit_basic_SUITE_data/selfsigned.crt"},
+        {keyfile, "test/snit_basic_SUITE_data/selfsigned.key"}
     ] end, snit_http_hello, []).
 
-Then open a browser to `$HOSTNAME:8080`. Do note that exceptions will need
-to be added on browsers (the test certificates use the OTP CA), and Chrome
-may never be happy with a custom certificate on localhost.
+Then open a browser to `https://snihost.custom:8080`. Do note that exceptions
+will need to be added on browsers, and Chrome may never be happy with a custom
+certificate on localhost if they require a CA chain that it can't resolve.
+Self-signed certificates appear to be fine.
+
+A connection can be debugged and inspected using the `openssl` debug client:
+
+    $ openssl s_client -connect snihost.custom:8080 -tls1 -servername -state 2>&1
+
 
 Changelog
 ---------

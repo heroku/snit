@@ -17,12 +17,12 @@ start(Name, Acceptors, ListenPort, SNIFun, Protocol, ProtoOpts) ->
                   {_Name, Cipher} <-  element(2, application:get_env(snit,
                                                                      cipher_suites))],
     SSLOpts = [
-               {alpn_preferred_protocols, [?ALPN_HEROKU_TCP, ?ALPN_HTTP1]},
+               {alpn_preferred_protocols, [?ALPN_HTTP1]},
                {ciphers, Ciphers},
                {honor_cipher_order, true},
                {port, ListenPort},
                {sni_fun, SNIFun},
-               {versions, ['tlsv1', 'tlsv1.1', 'tlsv1.2']}
+               {versions, ['tlsv1.2', 'tlsv1.1', 'tlsv1']}
                %% missing: reuse_session, reuse_sessions
               ],
     {ok, _} = ranch:start_listener(

@@ -17,7 +17,7 @@ start(Name, Acceptors, ListenPort, SNIFun, Protocol, ProtoOpts) ->
                   {_Name, Cipher} <-  element(2, application:get_env(snit,
                                                                      cipher_suites))],
     SSLOpts = [
-               {alpn_preferred_protocols, [?ALPN_HTTP1]},
+               {alpn_preferred_protocols, [?ALPN_HTTP1, ?ALPN_HEROKU_TCP]},
                {ciphers, Ciphers},
                {honor_cipher_order, true},
                {port, ListenPort},

@@ -3,7 +3,7 @@
 %% @end
 %%%-------------------------------------------------------------------
 -module(snit).
--export([start/6, stop/1]).
+-export([start/6, start/7, stop/1]).
 
 -include("snit.hrl").
 
@@ -13,6 +13,9 @@
 %% We could just package all the required modules for easy use.
 -spec start(Name::atom(), Acceptors::pos_integer(), inet:port(), fun(), module(), term()) -> ok.
 start(Name, Acceptors, ListenPort, SNIFun, Protocol, ProtoOpts) ->
+    start(Name, Acceptors, ListenPort, SNIFun, Protocol, ProtoOpts, ranch_ssl).
+
+start(Name, Acceptors, ListenPort, SNIFun, Protocol, ProtoOpts, SSLTransport) ->
     Ciphers = [Cipher ||
                   {_Name, Cipher} <-  element(2, application:get_env(snit,
                                                                      cipher_suites))],
@@ -28,7 +31,7 @@ start(Name, Acceptors, ListenPort, SNIFun, Protocol, ProtoOpts) ->
     {ok, _} = ranch:start_listener(
                 Name,
                 Acceptors,
-                ranch_ssl,              % transport
+                SSLTransport,
                 SSLOpts,
                 Protocol,
                 ProtoOpts

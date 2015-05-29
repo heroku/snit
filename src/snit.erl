@@ -20,6 +20,7 @@ start(Name, Acceptors, ListenPort, SNIFun, Protocol, ProtoOpts) ->
                {alpn_preferred_protocols, [?ALPN_HTTP1, ?ALPN_HEROKU_TCP]},
                {ciphers, Ciphers},
                {honor_cipher_order, true},
+               {secure_renegotiate, true},
                {port, ListenPort},
                {sni_fun, SNIFun},
                {versions, ['tlsv1.2', 'tlsv1.1', 'tlsv1']}

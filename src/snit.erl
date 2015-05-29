@@ -25,6 +25,7 @@ start(Name, Acceptors, ListenPort, SNIFun, Protocol, ProtoOpts, SSLTransport) ->
                {honor_cipher_order, true},
                {secure_renegotiate, true},
                {port, ListenPort},
+               {max_connections, infinity},
                {sni_fun, SNIFun},
                {versions, ['tlsv1.2', 'tlsv1.1', 'tlsv1']}
                %% missing: reuse_session, reuse_sessions

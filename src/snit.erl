@@ -24,6 +24,7 @@ start(Name, Acceptors, ListenPort, SNIFun, Protocol, ProtoOpts, SSLTransport) ->
                {ciphers, Ciphers},
                {honor_cipher_order, true},
                {secure_renegotiate, true},
+               {client_renegotiation, false},
                {port, ListenPort},
                {max_connections, infinity},
                {sni_fun, SNIFun},

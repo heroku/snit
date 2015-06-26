@@ -3,7 +3,7 @@
 %% @end
 %%%-------------------------------------------------------------------
 
--module(snit_sup).
+-module(snit_store_sup).
 
 -behaviour(supervisor).
 
@@ -28,11 +28,22 @@ start_link() ->
 
 %% Child :: {Id,StartFunc,Restart,Shutdown,Type,Modules}
 init([]) ->
+    Store =
+    case application:get_env(snit, store_type, ets) of
+        ets ->
+            {store,
+             {snit_ets_certs, start_link, []},
+             permanent, 5000, worker, [snit_ets_certs]};
+        bitcask ->
+            {store,
+             {snit_bc_certs, start_link, []},
+             permanent, 5000, worker, [snit_ets_certs]}
+    end,
     {ok, {{one_for_all, 5, 10},
-          [{stores,
-            {snit_store_sup, start_link, []},
-            permanent, 5000, supervisor, [snit_store_sup]}
-          ]}}.
+          [
+           Store
+          ]
+         }}.
 
 %%====================================================================
 %% Internal functions

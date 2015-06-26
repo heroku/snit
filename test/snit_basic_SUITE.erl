@@ -38,7 +38,7 @@ init_per_testcase(connect_sni, Config) ->
 								  {keyfile, ?config(data_dir, Config) ++ "key.pem"}]),
 	Config;
 init_per_testcase(in_mem_connect, Config) ->
-	snit:start(connect_sni, 2, 8001, fun test_sni_fun_mem/1, snit_echo, []),
+	snit:start(in_mem_connect, 2, 8001, fun test_sni_fun_mem/1, snit_echo, []),
 	{ok, Cert0} = file:read_file(?config(data_dir, Config) ++ "cert.pem"),
 	[{_, Cert,_}] = public_key:pem_decode(Cert0),
 	snit_ets_certs:add("memhost", [{cert, Cert}]),
@@ -79,13 +79,14 @@ init_per_testcase(_TestCase, Config) ->
 end_per_testcase(connect, _Config) ->
 	snit:stop(connect),
 	snit_ets_certs:delete("localhost"),
+    timer:sleep(1000),
 	ok;
 end_per_testcase(connect_sni, _Config) ->
 	snit:stop(connect_sni),
 	snit_ets_certs:delete("snihost"),
 	ok;
 end_per_testcase(in_mem_connect, _Config) ->
-	snit:stop(connect_sni),
+	snit:stop(in_mem_connect),
 	snit_ets_certs:delete("memhost"),
 	ok;
 end_per_testcase(proxy, Config) ->

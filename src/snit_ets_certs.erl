@@ -1,10 +1,11 @@
--module(snit_certs).
+-module(snit_ets_certs).
+
+-behaviour(snit_cert_store).
 -behaviour(gen_server).
+
 -export([start_link/0,
          add/2, update/2, upsert/2, delete/1,
-        % delete_by_cert/1 <-- not supported until we need it
-        % dump_to_file/1, restore_from_file/1 <-- Same
-         lookup/1]).
+         lookup/1, ready/0]).
 -export([init/1,
          handle_call/3, handle_cast/2, handle_info/2,
          code_change/3, terminate/2, format_status/2]).
@@ -37,6 +38,14 @@ lookup(Domain) ->
     catch
         error:badarg -> % table is down
             []
+    end.
+
+ready() ->
+    case ets:info(?TABLE) of
+        undefined ->
+            false;
+        _ ->
+            true
     end.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

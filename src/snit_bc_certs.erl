@@ -11,6 +11,9 @@
          ready/0
         ]).
 
+%% not sure if this should be test only or left in for maintenance
+-export([set_wallet/1]).
+
 %% gen_server API
 -export([init/1,
          handle_call/3, handle_cast/2, handle_info/2,
@@ -49,14 +52,14 @@ lookup(Domain) ->
 ready() ->
     gen_server:call(?MODULE, ready).
 
+set_wallet(Wallet) ->
+    gen_server:call(?MODULE, {set_wallet, Wallet}).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Internal Export / Callbacks %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 init([]) ->
     Path = application:get_env(snit, certs_storage_path, "data/"),
-    {ok, _} = application:ensure_all_started(bitcask),
-    {ok, _} = application:ensure_all_started(erlfernet),
 
     %% in the real world, this can fail
     Wallet = fetch_wallet(),
@@ -64,14 +67,16 @@ init([]) ->
     %% do we want to tune other options here?  default file size maybe
     %% too big?
     case bitcask:open(Path ++ ?DB, [read_write]) of
-        {ok, Ref} ->
-            ok;
         {error, Reason} ->
             Ref = undefined,
-            exit({bc_open_error, Reason})
+            exit({bc_open_error, Reason});
+        Ref ->
+            Ref
     end,
     {ok, #state{ ref = Ref, wallet = Wallet }}.
 
+handle_call({set_wallet, Wallet}, _From, State) ->
+    {reply, ok, State#state{wallet = Wallet}};
 handle_call({add, Domain, Certs}, _From, #state{ref = Ref} = State) ->
     Reply =
         case snit_util:validate(Certs) of
@@ -154,7 +159,9 @@ handle_call({lookup, Domain}, _From,  #state{ref = Ref,
             %% may want to translate reasons for
             %% better error messages.
             {error, Reason} ->
-                {error, Reason}
+                {error, Reason};
+            not_found ->
+                {error, not_found}
         end,
     {reply, Reply, State};
 handle_call(_, _From, State) ->
@@ -182,11 +189,11 @@ serialize(Certs) ->
     <<?v1, (term_to_binary(Certs))/binary>>.
 
 deserialize(<<?v1, BCerts/binary>>, Domain, Wallet) ->
-    KeyKey = wallet:key(Domain, Wallet),
+    KeyKey = snit_wallet:key(Domain, Wallet),
     Certs = binary_to_term(BCerts),
-    EncKey = proplists:get_value(Certs),
-    Key = fernet:verify_and_decrypt_token(EncKey, KeyKey, infinity),
+    EncKey = proplists:get_value(key, Certs),
+    {ok, Key} = fernet:verify_and_decrypt_token(EncKey, KeyKey, infinity),
     lists:keyreplace(key, 1, Certs, {key, Key}).
 
 fetch_wallet() ->
-    wallet:make_fake().
+    snit_wallet:make_fake().

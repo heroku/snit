@@ -33,7 +33,7 @@ init_per_testcase(connect, Config) ->
 	Config;
 init_per_testcase(connect_sni, Config) ->
 	snit:start(connect_sni, 2, 8001, fun test_sni_fun/1, snit_echo, []),
-	snit_ets_erts:add("snihost", [{cacertfile, ?config(data_dir, Config) ++ "cacerts.pem"},
+	snit_ets_certs:add("snihost", [{cacertfile, ?config(data_dir, Config) ++ "cacerts.pem"},
 								  {certfile, ?config(data_dir, Config) ++ "cert.pem"},
 								  {keyfile, ?config(data_dir, Config) ++ "key.pem"}]),
 	Config;

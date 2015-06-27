@@ -61,4 +61,4 @@ roll_key(Shard, NewKey, Wallet, AdvanceEpoch) ->
     Wallet#wallet{keys = NewKeys, epoch = NewEpoch}.
 
 get_key(Domain) ->
-    erlang:phash2(Domain) rem ?shard_count.
+    (erlang:phash2(Domain) rem ?shard_count) + 1.

@@ -61,4 +61,7 @@ roll_key(Shard, NewKey, Wallet, AdvanceEpoch) ->
     Wallet#wallet{keys = NewKeys, epoch = NewEpoch}.
 
 get_key(Domain) ->
-    (erlang:phash2(Domain) rem ?shard_count) + 1.
+    %% use a widely-implemented hash fun here so as not to tie
+    %% ourselves to beam.
+    <<FullHash:128/integer>> = crypto:hash(md5, Domain),
+    (FullHash rem ?shard_count) + 1.

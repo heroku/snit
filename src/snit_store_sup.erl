@@ -29,19 +29,17 @@ start_link() ->
 %% Child :: {Id,StartFunc,Restart,Shutdown,Type,Modules}
 init([]) ->
     Store =
-    case application:get_env(snit, store_type, ets) of
-        ets ->
-            {store,
-             {snit_ets_certs, start_link, []},
-             permanent, 5000, worker, [snit_ets_certs]};
-        bitcask ->
-            {store,
-             {snit_bc_certs, start_link, []},
-             permanent, 5000, worker, [snit_ets_certs]}
-    end,
+        case application:get_env(snit, store_type, ets) of
+            ets ->
+                snit_ets_store;
+            bitcask ->
+                snit_bc_store
+        end,
     {ok, {{one_for_all, 5, 10},
           [
-           Store
+            {store,
+             {snit_cert_store, start_link, [Store, []]},
+             permanent, 5000, worker, [snit_cert_store]}
           ]
          }}.
 

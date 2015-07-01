@@ -33,7 +33,7 @@ end_per_group(_GroupName, _Config) ->
 init_per_testcase(basic, Config) ->
     N = 250,
     {Domains, Wallet} = setup(N, Config),
-    snit_bc_certs:set_wallet(Wallet),
+    snit_cert_store:set_wallet(Wallet),
     [{domains, Domains},
      {n, N}
      |Config];
@@ -51,7 +51,7 @@ basic(Config) ->
          {Domain, Certs} = lists:nth(I, Domains),
          %% ct:pal("checking ~p", [Domain]),
          {key, PlainKey} = lists:keyfind(key, 1, Certs),
-         {ok, StoreCerts} = snit_bc_certs:lookup(Domain),
+         {ok, StoreCerts} = snit_cert_store:lookup(Domain),
          %% repeat match below intentional
          {key, PlainKey} = lists:keyfind(key, 1, StoreCerts)
      end
@@ -73,11 +73,12 @@ generate_pairs(Num, Config) ->
 
 add(Domain, Certs0, Wallet) ->
     Key = snit_wallet:key(Domain, Wallet),
-    DecKey = proplists:get_value(key, Certs0),
+    {KeyType, DecKey} = proplists:get_value(key, Certs0),
     EncKey = fernet:generate_token(DecKey, Key),
-    Certs = lists:keyreplace(key, 1, Certs0, {key, EncKey}),
+    EncTuple = {KeyType, EncKey},
+    Certs = lists:keyreplace(key, 1, Certs0, {key, EncTuple}),
     %% ct:pal("adding ~p", [Domain]),
-    ok = snit_bc_certs:add(Domain, Certs).
+    ok = snit_cert_store:add(Domain, Certs).
 
 load_mem_certs(Config) ->
     case random:uniform(20) of
@@ -86,8 +87,8 @@ load_mem_certs(Config) ->
             {ok, SSCert0} = file:read_file(?config(data_dir, Config) ++ "selfsigned.key"),
             [{_, SSCert, _}] = public_key:pem_decode(SSCert0),
             {ok, SSKey0} = file:read_file(?config(data_dir, Config) ++ "selfsigned.key"),
-            [{_, SSKey, _}] = public_key:pem_decode(SSKey0),
-            [{cert, SSCert}, {key, SSKey}];
+            [{KeyType, SSKey, _}] = public_key:pem_decode(SSKey0),
+            [{cert, SSCert}, {key, {KeyType, SSKey}}];
         _ ->
             {ok, Cert0} = file:read_file(?config(data_dir, Config) ++ "cert.pem"),
             [{_, Cert, _}] = public_key:pem_decode(Cert0),
@@ -95,6 +96,6 @@ load_mem_certs(Config) ->
             CaCert1 = public_key:pem_decode(CaCert0),
             CaCert = [CCert || {_, CCert, _} <- CaCert1],
             {ok, Key0} = file:read_file(?config(data_dir, Config) ++ "key.pem"),
-            [{_, Key, _}] = public_key:pem_decode(Key0),
-            [{cert, Cert}, {cacert, CaCert}, {key, Key}]
+            [{KeyType, Key, _}] = public_key:pem_decode(Key0),
+            [{cert, Cert}, {cacerts, CaCert}, {key, {KeyType, Key}}]
     end.

@@ -8,12 +8,16 @@ groups() ->
 	[].
 
 all() ->
-	[connect, connect_sni, proxy, in_mem_connect, update, null].
+	[connect, connect_sni, proxy, update, null].
 
+%% run this with both?
 init_per_suite(Config) ->
-	{ok, _} = application:ensure_all_started(snit),
-	lager_common_test_backend:bounce(info),
-	Config.
+    random:seed(erlang:unique_integer()),
+    lager_common_test_backend:bounce(info),
+    {ok, _} = application:ensure_all_started(snit),
+    Wallet = snit_wallet:make_fake(),
+    snit_cert_store:set_wallet(Wallet),
+    [{wallet, Wallet} | Config].
 
 end_per_suite(_Config) ->
 	application:stop(snit),
@@ -27,21 +31,11 @@ end_per_group(_GroupName, _Config) ->
 
 init_per_testcase(connect, Config) ->
 	snit:start(connect, 2, 8001, fun test_sni_fun/1, snit_echo, []),
-	snit_ets_certs:add("localhost", [{cacertfile, ?config(data_dir, Config) ++ "cacerts.pem"},
-									 {certfile, ?config(data_dir, Config) ++ "cert.pem"},
-									 {keyfile, ?config(data_dir, Config) ++ "key.pem"}]),
+	load("localhost", Config),
 	Config;
 init_per_testcase(connect_sni, Config) ->
 	snit:start(connect_sni, 2, 8001, fun test_sni_fun/1, snit_echo, []),
-	snit_ets_certs:add("snihost", [{cacertfile, ?config(data_dir, Config) ++ "cacerts.pem"},
-								  {certfile, ?config(data_dir, Config) ++ "cert.pem"},
-								  {keyfile, ?config(data_dir, Config) ++ "key.pem"}]),
-	Config;
-init_per_testcase(in_mem_connect, Config) ->
-	snit:start(in_mem_connect, 2, 8001, fun test_sni_fun_mem/1, snit_echo, []),
-	{ok, Cert0} = file:read_file(?config(data_dir, Config) ++ "cert.pem"),
-	[{_, Cert,_}] = public_key:pem_decode(Cert0),
-	snit_ets_certs:add("memhost", [{cert, Cert}]),
+    load("snihost", Config),
 	Config;
 init_per_testcase(proxy, Config) ->
 	{ok, Listen} = gen_tcp:listen(0, [{active, false}]),
@@ -49,9 +43,7 @@ init_per_testcase(proxy, Config) ->
 	IP = {127,0,0,1},
 	Backend = spawn_link(fun() -> accept(Listen) end),
 	snit:start(proxy, 2, 8001, fun test_sni_fun/1, snit_tcp_proxy, [{dest, {IP,Port}}]),
-	snit_ets_certs:add("snihost", [{cacertfile, ?config(data_dir, Config) ++ "cacerts.pem"},
-                                   {certfile, ?config(data_dir, Config) ++ "cert.pem"},
-                                   {keyfile, ?config(data_dir, Config) ++ "key.pem"}]),
+    load("snihost", Config),
 	[{backends, [Backend]} | Config];
 init_per_testcase(update, Config) ->
 	{ok, Listen} = gen_tcp:listen(0, [{active, false}]),
@@ -59,9 +51,7 @@ init_per_testcase(update, Config) ->
 	IP = {127,0,0,1},
 	Backends = [spawn_link(fun() -> accept(Listen) end) || _ <- [1,2]],
 	snit:start(update, 2, 8001, fun test_sni_fun/1, snit_tcp_proxy, [{dest, {IP,Port}}]),
-	snit_ets_certs:add("update", [{cacertfile, ?config(data_dir, Config) ++ "cacerts.pem"},
-                                  {certfile, ?config(data_dir, Config) ++ "cert.pem"},
-                                  {keyfile, ?config(data_dir, Config) ++ "key.pem"}]),
+    load("update", Config),
 	[{backends, Backends} | Config];
 init_per_testcase(null, Config) ->
 	{ok, Listen} = gen_tcp:listen(0, [{active, false}]),
@@ -69,40 +59,47 @@ init_per_testcase(null, Config) ->
 	IP = {127,0,0,1},
 	Backends = [spawn_link(fun() -> accept(Listen) end) || _ <- [1,2]],
 	snit:start(null, 2, 8001, fun test_sni_fun/1, snit_tcp_proxy, [{dest, {IP,Port}}]),
-	snit_ets_certs:add("null", [{cacertfile, ?config(data_dir, Config) ++ "cacerts.pem"},
-                                {certfile, ?config(data_dir, Config) ++ "cert.pem"},
-                                {keyfile, ?config(data_dir, Config) ++ "key.pem"}]),
+	load("null", Config),
 	[{backends, Backends} | Config];
 init_per_testcase(_TestCase, Config) ->
 	Config.
 
+load(Domain, Config) ->
+    KeyKey = snit_wallet:key(Domain, ?config(wallet, Config)),
+    {ok, Cert0} = file:read_file(?config(data_dir, Config) ++ "cert.pem"),
+    [{_, Cert, _}] = public_key:pem_decode(Cert0),
+    {ok, CaCert0} = file:read_file(?config(data_dir, Config) ++ "cacerts.pem"),
+    CaCert1 = public_key:pem_decode(CaCert0),
+    CaCert = [CCert || {_, CCert, _} <- CaCert1],
+    {ok, Key1} = file:read_file(?config(data_dir, Config) ++ "key.pem"),
+    [{KeyType, Key0, _}] = public_key:pem_decode(Key1),
+    Key = fernet:generate_token(Key0, KeyKey),
+    Certs = [{cert, Cert}, {cacerts, CaCert}, {key, {KeyType, Key}}],
+    snit_cert_store:add(Domain, Certs).
+
 end_per_testcase(connect, _Config) ->
 	snit:stop(connect),
-	snit_ets_certs:delete("localhost"),
+	snit_cert_store:delete("localhost"),
     timer:sleep(1000),
 	ok;
 end_per_testcase(connect_sni, _Config) ->
 	snit:stop(connect_sni),
-	snit_ets_certs:delete("snihost"),
-	ok;
-end_per_testcase(in_mem_connect, _Config) ->
-	snit:stop(in_mem_connect),
-	snit_ets_certs:delete("memhost"),
+	snit_cert_store:delete("snihost"),
 	ok;
 end_per_testcase(proxy, Config) ->
 	snit:stop(proxy),
 	[shutdown(Pid) || Pid <- ?config(backends, Config)],
-	snit_ets_certs:delete("snihost"),
+	snit_cert_store:delete("snihost"),
 	ok;
 end_per_testcase(update, Config) ->
 	snit:stop(update),
 	[shutdown(Pid) || Pid <- ?config(backends, Config)],
-	snit_ets_certs:delete("update"),
+	snit_cert_store:delete("update"),
 	ok;
 end_per_testcase(null, Config) ->
 	snit:stop(null),
 	[shutdown(Pid) || Pid <- ?config(backends, Config)],
-	snit_ets_certs:delete("null"),
+	snit_cert_store:delete("null"),
 	ok.
 
 connect(Config) ->
@@ -135,22 +132,6 @@ connect_sni(Config) ->
 	end,
 	Config.
 
-in_mem_connect(Config) ->
-	{ok, S} = ssl:connect("localhost", 8001,
-						  [{active, true},binary,
-						   {server_name_indication, "memhost"}]),
-	ssl:send(S, <<"first">>),
-	receive
-		{ssl, S, <<"first">>} ->
-			ok;
-		Else ->
-			lager:info("else ~p", [Else]),
-			error(unexpected_message)
-	after 500 ->
-			error(timeout)
-	end,
-	Config.
-
 proxy(Config) ->
 	{ok, S} = ssl:connect("localhost", 8001,
 						  [{active, true},binary,
@@ -171,8 +152,8 @@ update(Config) ->
 	{ok, S1} = ssl:connect("localhost", 8001,
 						   [{active, true},binary,
 							{server_name_indication, "update"}]),
-	snit_ets_certs:update("update", [{certfile, ?config(data_dir, Config) ++ "selfsigned.crt"},
-                                     {keyfile, ?config(data_dir, Config) ++ "selfsigned.key"}]),
+	snit_cert_store:update("update", [{certfile, ?config(data_dir, Config) ++ "selfsigned.crt"},
+                                       {keyfile, ?config(data_dir, Config) ++ "selfsigned.key"}]),
 	ssl:send(S1, <<"first">>),
 	{ok, S2} = ssl:connect("localhost", 8001,
 						   [{active, true},binary,
@@ -206,7 +187,7 @@ null(Config) ->
 	{ok, S} = ssl:connect("localhost", 8001,
 						  [{active, true},binary,
 						   {server_name_indication, "null"}]),
-	snit_ets_certs:delete("null"),
+	snit_cert_store:delete("null"),
 	%% The cert is gone, this one fails.
 	{error, _} = ssl:connect("localhost", 8001,
                              [{active, true},binary,
@@ -226,11 +207,12 @@ null(Config) ->
 
 test_sni_fun(SNIHostname) ->
 	lager:debug("sni hostname: ~p", [SNIHostname]),
-	snit_ets_certs:lookup(SNIHostname).
-
-test_sni_fun_mem(SNIHostname) ->
-	lager:debug("sni hostname: ~p", [SNIHostname]),
-	snit_ets_certs:lookup(SNIHostname).
+	case snit_cert_store:lookup(SNIHostname) of
+        {ok, Certs} ->
+            Certs;
+        {error, not_found} ->
+            []
+    end.
 
 accept(Listen) ->
 	{ok, Sock} = gen_tcp:accept(Listen),

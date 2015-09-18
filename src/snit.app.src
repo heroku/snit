@@ -37,8 +37,6 @@
         {"AES256-GCM-SHA384", {rsa,aes_256_gcm,null}},
         {"AES256-SHA", {rsa,aes_256_cbc,sha}},
         {"AES256-SHA256", {rsa,aes_256_cbc,sha256}},
-        {"DHE-DSS-AES128-SHA", {dhe_dss,aes_128_cbc,sha}},
-        {"DHE-RSA-AES128-SHA", {dhe_rsa,aes_128_cbc,sha}},
         {"ECDHE-ECDSA-AES128-GCM-SHA256", {ecdhe_ecdsa,aes_128_gcm,null}},
         {"ECDHE-ECDSA-AES128-SHA", {ecdhe_ecdsa,aes_128_cbc,sha}},
         {"ECDHE-ECDSA-AES128-SHA256", {ecdhe_ecdsa,aes_128_cbc,sha256}},
@@ -51,6 +49,8 @@
         {"ECDHE-RSA-AES256-GCM-SHA384", {ecdhe_rsa,aes_256_gcm,null}},
         {"ECDHE-RSA-AES256-SHA", {ecdhe_rsa,aes_256_cbc,sha}},
         {"ECDHE-RSA-AES256-SHA384", {ecdhe_rsa,aes_256_cbc,sha384}}
+       % {"DHE-DSS-AES128-SHA", {dhe_dss,aes_128_cbc,sha}}, % in policy, disabled as per SFDC CSIRT
+       % {"DHE-RSA-AES128-SHA", {dhe_rsa,aes_128_cbc,sha}}, % in policy, disabled as per SFDC CSIRT
     ]}
   ]},
   {modules, []}

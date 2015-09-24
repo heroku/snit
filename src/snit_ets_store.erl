@@ -7,17 +7,19 @@
          add/3, update/3, upsert/3,
          delete/2,
          lookup/2,
+         encrypted/1,
          terminate/1
         ]).
 
 -define(TABLE, ?MODULE).
--record(state, {}).
+-record(state, {encrypted = true :: boolean()}).
 
 %%% behavior callbacks
 
-init_store(_) ->
+init_store(Args) ->
+    Encrypted = proplists:get_value(encrypted, Args, true),
     ets:new(?TABLE, [private, set, named_table, {read_concurrency, true}]),
-    {ok, #state{}}.
+    {ok, #state{encrypted=Encrypted}}.
 
 add(Domain, Certs, State) ->
     Reply = case ets:insert_new(?TABLE, {Domain, Certs}) of
@@ -53,6 +55,9 @@ lookup(Domain, State) ->
                 {error, not_found}
         end,
     {Reply, State}.
+
+encrypted(State=#state{encrypted=Encrypted}) ->
+    {Encrypted, State}.
 
 terminate(_State) ->
     %% shouldn't need to terminate ets store as it's owned by this process.

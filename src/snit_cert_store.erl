@@ -30,6 +30,10 @@
     {certs(), term()} |
     {{error, atom()}, term()}.
 
+-callback encrypted(term()) ->
+    boolean() |
+    {{error, atom()}, term()}.
+
 -callback terminate(term()) ->
     ok.
 
@@ -47,7 +51,8 @@
          start_link/2,
          add/2, update/2, upsert/2,
          delete/1,
-         lookup/1
+         lookup/1,
+         encrypted/0
         ]).
 
 %% not sure if this should be test only or left in for maintenance
@@ -98,17 +103,17 @@ lookup(Domain) ->
 set_wallet(Wallet) ->
     gen_server:call(?MODULE, {set_wallet, Wallet}).
 
+encrypted() ->
+    gen_server:call(?MODULE, encrypted).
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Internal Export / Callbacks %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 init([Mod, Args]) ->
     process_flag(sensitive, true), % keeps people from snooping
-    Wallet = case proplists:get_value(encrypted, Args, true) of
-                 true ->
-                     fetch_wallet();
-                 false ->
-                     undefined
-             end,
+
+    %% This needs to be optional somehow?
+    Wallet = fetch_wallet(),
 
     case Mod:init_store(Args) of
         {ok, ModState} ->
@@ -178,16 +183,25 @@ handle_call({lookup, Domain}, _From,
     {Reply, ModState} =
         case Mod:lookup(Domain, ModState1) of
             {{ok, Value0}, ModState0} ->
-                case decrypt(Value0, Domain, Wallet) of
-                    {ok, Value} ->
-                        {Value, ModState0};
-                    {error, Reason} ->
-                        {{error, Reason}, ModState0}
+                case Mod:encrypted(ModState0) of
+                    true ->
+                        case decrypt(Value0, Domain, Wallet) of
+                            {ok, Value} ->
+                                {Value, ModState0};
+                            {error, Reason} ->
+                                {{error, Reason}, ModState0}
+                        end;
+                    false ->
+                        {Value0, ModState0}
                 end;
             {{error, Reason}, ModState0} ->
                 {{error, Reason}, ModState0}
         end,
     {reply, Reply, State#state{mod_state = ModState}};
+handle_call(encrypted, _From,
+            #state{mod = Mod, mod_state = ModState} = State) ->
+    {Encrypted, ModState1} = Mod:encrypted(ModState),
+    {reply, Encrypted, State#state{mod_state = ModState1}};
 handle_call(_, _From, State) ->
     {noreply, State}.
 

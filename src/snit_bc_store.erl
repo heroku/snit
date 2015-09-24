@@ -7,6 +7,7 @@
          add/3, update/3, upsert/3,
          delete/2,
          lookup/2,
+         encrypted/1,
          terminate/1
         ]).
 
@@ -102,6 +103,9 @@ lookup(Domain, Ref) ->
                 {error, not_found}
         end,
     {Reply, Ref}.
+
+encrypted(_) ->
+    true.
 
 terminate(Ref) ->
     _ = bitcask:close(Ref).

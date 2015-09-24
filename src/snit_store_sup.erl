@@ -35,12 +35,12 @@ init([]) ->
             bitcask ->
                 snit_bc_store
         end,
-    Encrypted = application:get_env(snit, encrypted_store, true),
+    StoreOpts = application:get_env(snit, Store, []),
 
     {ok, {{one_for_all, 5, 10},
           [
             {store,
-             {snit_cert_store, start_link, [Store, [{encrypted, Encrypted}]]},
+             {snit_cert_store, start_link, [Store, StoreOpts]},
              permanent, 5000, worker, [snit_cert_store]}
           ]
          }}.

@@ -14,7 +14,7 @@
 -define(v1, 1:8).
 
 %%% behavior callbacks
-init_store([]) ->
+init_store(_) ->
     Path = application:get_env(snit, certs_storage_path, "data/"),
 
     %% do we want to tune other options here?  default file size maybe

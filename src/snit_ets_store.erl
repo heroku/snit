@@ -15,7 +15,7 @@
 
 %%% behavior callbacks
 
-init_store([]) ->
+init_store(_) ->
     ets:new(?TABLE, [private, set, named_table, {read_concurrency, true}]),
     {ok, #state{}}.
 

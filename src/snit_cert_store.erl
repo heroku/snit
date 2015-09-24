@@ -27,7 +27,7 @@
     {{error, atom()}, term()}.
 
 -callback lookup(domain(), term()) ->
-    {{ok, certs}, term()} |
+    {certs(), term()} |
     {{error, atom()}, term()}.
 
 -callback terminate(term()) ->
@@ -103,7 +103,12 @@ set_wallet(Wallet) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 init([Mod, Args]) ->
     process_flag(sensitive, true), % keeps people from snooping
-    Wallet = fetch_wallet(),
+    Wallet = case proplists:get_value(encrypted, Args, true) of
+                 true ->
+                     fetch_wallet();
+                 false ->
+                     undefined
+             end,
 
     case Mod:init_store(Args) of
         {ok, ModState} ->
@@ -158,13 +163,24 @@ handle_call({delete, Domain}, _From,
     {reply, Reply, State#state{mod_state = ModState}};
 handle_call({lookup, Domain}, _From,
             #state{mod = Mod, mod_state = ModState1,
+                   wallet = undefined} = State) ->
+    {Reply, ModState} =
+        case Mod:lookup(Domain, ModState1) of
+            {{ok, Value}, ModState0} ->
+                {Value, ModState0};
+            {{error, Reason}, ModState0} ->
+                {{error, Reason}, ModState0}
+        end,
+    {reply, Reply, State#state{mod_state = ModState}};
+handle_call({lookup, Domain}, _From,
+            #state{mod = Mod, mod_state = ModState1,
                    wallet = Wallet} = State) ->
     {Reply, ModState} =
         case Mod:lookup(Domain, ModState1) of
             {{ok, Value0}, ModState0} ->
                 case decrypt(Value0, Domain, Wallet) of
                     {ok, Value} ->
-                        {{ok, Value}, ModState0};
+                        {Value, ModState0};
                     {error, Reason} ->
                         {{error, Reason}, ModState0}
                 end;

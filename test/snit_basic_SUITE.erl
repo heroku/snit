@@ -208,10 +208,10 @@ null(Config) ->
 test_sni_fun(SNIHostname) ->
 	lager:debug("sni hostname: ~p", [SNIHostname]),
 	case snit_cert_store:lookup(SNIHostname) of
-        {ok, Certs} ->
-            Certs;
         {error, not_found} ->
-            []
+            [];
+        Certs when is_list(Certs) ->
+            Certs
     end.
 
 accept(Listen) ->

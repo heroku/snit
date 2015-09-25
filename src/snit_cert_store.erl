@@ -178,24 +178,24 @@ handle_call({lookup, Domain}, _From,
         end,
     {reply, Reply, State#state{mod_state = ModState}};
 handle_call({lookup, Domain}, _From,
-            #state{mod = Mod, mod_state = ModState1,
+            #state{mod = Mod, mod_state = ModState0,
                    wallet = Wallet} = State) ->
     {Reply, ModState} =
-        case Mod:lookup(Domain, ModState1) of
-            {{ok, Value0}, ModState0} ->
-                case Mod:encrypted(ModState0) of
-                    true ->
+        case Mod:lookup(Domain, ModState0) of
+            {{ok, Value0}, ModState1} ->
+                case Mod:encrypted(ModState1) of
+                    {true, ModState2} ->
                         case decrypt(Value0, Domain, Wallet) of
                             {ok, Value} ->
-                                {Value, ModState0};
+                                {Value, ModState2};
                             {error, Reason} ->
-                                {{error, Reason}, ModState0}
+                                {{error, Reason}, ModState2}
                         end;
-                    false ->
-                        {Value0, ModState0}
+                    {false, ModState2} ->
+                        {Value0, ModState2}
                 end;
-            {{error, Reason}, ModState0} ->
-                {{error, Reason}, ModState0}
+            {{error, Reason}, ModState1} ->
+                {{error, Reason}, ModState1}
         end,
     {reply, Reply, State#state{mod_state = ModState}};
 handle_call(encrypted, _From,

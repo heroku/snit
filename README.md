@@ -61,7 +61,7 @@ Add an entry in there saying:
 (using whatever IP yours is rather than `127.0.0.1`). Everrything is set.
 Start the `snit` server:
 
-    $ rebar3 shell
+    $ rebar3 as demo shell
     1> application:ensure_all_started(snit).
     snit:start(http, 10, 8080, fun(_) -> [
         {certfile, "test/snit_basic_SUITE_data/selfsigned.crt"},

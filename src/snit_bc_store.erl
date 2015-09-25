@@ -104,8 +104,8 @@ lookup(Domain, Ref) ->
         end,
     {Reply, Ref}.
 
-encrypted(_) ->
-    true.
+encrypted(State) ->
+    {true, State}.
 
 terminate(Ref) ->
     _ = bitcask:close(Ref).

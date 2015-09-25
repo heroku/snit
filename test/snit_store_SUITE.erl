@@ -51,7 +51,7 @@ basic(Config) ->
          {Domain, Certs} = lists:nth(I, Domains),
          %% ct:pal("checking ~p", [Domain]),
          {key, PlainKey} = lists:keyfind(key, 1, Certs),
-         {ok, StoreCerts} = snit_cert_store:lookup(Domain),
+         StoreCerts = snit_cert_store:lookup(Domain),
          %% repeat match below intentional
          {key, PlainKey} = lists:keyfind(key, 1, StoreCerts)
      end

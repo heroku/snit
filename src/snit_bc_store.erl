@@ -7,6 +7,7 @@
          add/3, update/3, upsert/3,
          delete/2,
          lookup/2,
+         encrypted/1,
          terminate/1
         ]).
 
@@ -14,7 +15,7 @@
 -define(v1, 1:8).
 
 %%% behavior callbacks
-init_store([]) ->
+init_store(_) ->
     Path = application:get_env(snit, certs_storage_path, "data/"),
 
     %% do we want to tune other options here?  default file size maybe
@@ -102,6 +103,9 @@ lookup(Domain, Ref) ->
                 {error, not_found}
         end,
     {Reply, Ref}.
+
+encrypted(_) ->
+    true.
 
 terminate(Ref) ->
     _ = bitcask:close(Ref).

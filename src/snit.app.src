@@ -6,7 +6,6 @@
   {applications,
    [kernel,
     stdlib,
-    bitcask,
     fernet,
     ssl,
     ranch

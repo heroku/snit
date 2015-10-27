@@ -65,7 +65,7 @@
 
 -record(state,
         {
-          mod,
+          mod :: module(),
           mod_state,
           wallet
         }).
@@ -113,7 +113,7 @@ init([Mod, Args]) ->
     process_flag(sensitive, true), % keeps people from snooping
 
     %% This needs to be optional somehow?
-    Wallet = fetch_wallet(),
+    {ok, Wallet, _ClosedWallet} = fetch_wallet(),
 
     case Mod:init_store(Args) of
         {ok, ModState} ->
@@ -224,11 +224,11 @@ format_status(_ServerState, [_Pdict, _State]) -> % sys:get_status or crashes
 %%% Internal Functions
 
 decrypt(Certs, Domain, Wallet) ->
-    KeyKey = snit_wallet:key(Domain, Wallet),
     {KeyType, EncKey} = proplists:get_value(key, Certs),
-    {ok, Key} = fernet:verify_and_decrypt_token(EncKey, KeyKey, infinity),
+    {ok, Key} = pallet:decrypt_privkey(Wallet, Domain, EncKey),
+
     %% wrap in OK here to keep apis in place for future error checking
     {ok, lists:keyreplace(key, 1, Certs, {key, {KeyType, Key}})}.
 
 fetch_wallet() ->
-    snit_wallet:make_fake().
+    pallet:new_wallet().

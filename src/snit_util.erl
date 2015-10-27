@@ -1,6 +1,6 @@
 -module(snit_util).
 
--compile(export_all).
+-export([validate/1]).
 
 validate(Certs) ->
     try

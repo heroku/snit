@@ -7,8 +7,8 @@
    [kernel,
     stdlib,
     bitcask,
-    fernet,
     ssl,
+    pallet,
     ranch
    ]},
   {env,[

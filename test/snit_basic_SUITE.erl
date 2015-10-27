@@ -13,13 +13,15 @@ all() ->
 %% run this with both?
 init_per_suite(Config) ->
     random:seed(erlang:unique_integer()),
+    mock_pallet:setup(),
     lager_common_test_backend:bounce(info),
     {ok, _} = application:ensure_all_started(snit),
-    Wallet = snit_wallet:make_fake(),
+    {ok, Wallet, _Closed} = pallet:new_wallet(),
     snit_cert_store:set_wallet(Wallet),
     [{wallet, Wallet} | Config].
 
 end_per_suite(_Config) ->
+    mock_pallet:teardown(),
 	application:stop(snit),
 	ok.
 
@@ -65,7 +67,6 @@ init_per_testcase(_TestCase, Config) ->
 	Config.
 
 load(Domain, Config) ->
-    KeyKey = snit_wallet:key(Domain, ?config(wallet, Config)),
     {ok, Cert0} = file:read_file(?config(data_dir, Config) ++ "cert.pem"),
     [{_, Cert, _}] = public_key:pem_decode(Cert0),
     {ok, CaCert0} = file:read_file(?config(data_dir, Config) ++ "cacerts.pem"),
@@ -73,7 +74,8 @@ load(Domain, Config) ->
     CaCert = [CCert || {_, CCert, _} <- CaCert1],
     {ok, Key1} = file:read_file(?config(data_dir, Config) ++ "key.pem"),
     [{KeyType, Key0, _}] = public_key:pem_decode(Key1),
-    Key = fernet:generate_token(Key0, KeyKey),
+    {ok, Key} = pallet:encrypt_privkey(?config(wallet, Config), Domain, Key0),
+
     Certs = [{cert, Cert}, {cacerts, CaCert}, {key, {KeyType, Key}}],
     snit_cert_store:add(Domain, Certs).
 

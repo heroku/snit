@@ -12,6 +12,7 @@ all() ->
 
 init_per_suite(Config) ->
     random:seed(erlang:unique_integer()),
+    mock_pallet:setup(),
     application:set_env(snit, certs_storage_path,
                         ?config(data_dir, Config) ++ "/data/"),
     application:set_env(snit, store_type, bitcask),
@@ -20,6 +21,7 @@ init_per_suite(Config) ->
     Config.
 
 end_per_suite(Config) ->
+    mock_pallet:teardown(),
     os:cmd("rm -r " ++ ?config(data_dir, Config) ++ "/data"),
     application:stop(snit),
     ok.
@@ -60,7 +62,7 @@ basic(Config) ->
 %%% helper functions
 
 setup(Num, Config) ->
-    Wallet = snit_wallet:make_fake(),
+    {ok, Wallet, _Closed} = pallet:new_wallet(),
     Domains = generate_pairs(Num, Config),
     [add(Domain, Certs, Wallet)
      || {Domain, Certs} <- Domains],
@@ -72,12 +74,10 @@ generate_pairs(Num, Config) ->
      || _ <- lists:seq(1, Num)].
 
 add(Domain, Certs0, Wallet) ->
-    Key = snit_wallet:key(Domain, Wallet),
     {KeyType, DecKey} = proplists:get_value(key, Certs0),
-    EncKey = fernet:generate_token(DecKey, Key),
+    {ok, EncKey} = pallet:encrypt_privkey(Wallet, Domain, DecKey),
     EncTuple = {KeyType, EncKey},
     Certs = lists:keyreplace(key, 1, Certs0, {key, EncTuple}),
-    %% ct:pal("adding ~p", [Domain]),
     ok = snit_cert_store:add(Domain, Certs).
 
 load_mem_certs(Config) ->

@@ -27,13 +27,6 @@ setup() ->
                   Key = fernet:generate_token(Plaintext, ?PLAINTEXT),
                   {ok, Key, ?CIPHERTEXT}
               end),
-%    meck:expect(pallet_kms, decrypt,
-%              fun(_Client, Ciphertext, ?CIPHERTEXT) ->
-%                  fernet:verify_and_decrypt_token(Ciphertext, ?PLAINTEXT,
-%                                                  infinity)
-%              end),
-%    meck:expect(pallet_kms, encrypt,
-%        fun(_, _) -> {ok, <<>>, <<>>} end),
     ok.
 
 teardown() ->

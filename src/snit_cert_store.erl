@@ -7,8 +7,15 @@
 
 -export_type([domain/0, certs/0]).
 
+-type cert_store_callback_module() :: snit_ets_store
+                                    | snit_bc_store.
+
+-type cert_store_state() :: snit_ets_store:snit_ets_store_state()
+                          | snit_bc_store:snit_bc_store_state().
+
 -callback init_store([any()]) ->
-    ok | {error, atom()}.
+    {ok, cert_store_state(), boolean()} |
+    {error, atom()}.
 
 -callback add(domain(), certs(), term()) ->
     {ok, term()} |
@@ -28,10 +35,6 @@
 
 -callback lookup(domain(), term()) ->
     {certs(), term()} |
-    {{error, atom()}, term()}.
-
--callback encrypted(term()) ->
-    boolean() |
     {{error, atom()}, term()}.
 
 -callback terminate(term()) ->
@@ -63,16 +66,22 @@
          handle_call/3, handle_cast/2, handle_info/2,
          code_change/3, terminate/2, format_status/2]).
 
--record(state,
+-define(STATE, ?MODULE). %%list_to_atom(atom_to_list(?MODULE) ++ "_state")).
+-define(SR, #?STATE).
+
+-record(?STATE,
         {
           mod :: module(),
           mod_state,
-          wallet
+          wallet :: pallet:wallet(),
+          encrypted :: boolean()
         }).
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 %%% Public Interface %%%
 %%%%%%%%%%%%%%%%%%%%%%%%
+-spec start_link(cert_store_callback_module(), [proplists:property()]) ->
+                        {ok, pid()} | ignore | {error, term()}.
 start_link(Mod, Args) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [Mod, Args], []).
 
@@ -116,18 +125,20 @@ init([Mod, Args]) ->
     {ok, Wallet, _ClosedWallet} = fetch_wallet(),
 
     case Mod:init_store(Args) of
-        {ok, ModState} ->
-            {ok, #state{ mod = Mod,
+        {ok, ModState, Encrypted} ->
+            {ok, ?SR{ mod = Mod,
                          mod_state = ModState,
-                         wallet = Wallet }};
+                         wallet = Wallet,
+                         encrypted = Encrypted
+                       }};
         {error, Reason} ->
             {error, Reason}
     end.
 
 handle_call({set_wallet, Wallet}, _From, State) ->
-    {reply, ok, State#state{wallet = Wallet}};
+    {reply, ok, State?SR{wallet = Wallet}};
 handle_call({add, Domain, Certs}, _From,
-            #state{mod = Mod, mod_state = ModState1} = State) ->
+            ?SR{mod = Mod, mod_state = ModState1} = State) ->
     {Reply, ModState} =
         case Mod:add(Domain, Certs, ModState1) of
             {ok, ModState0} ->
@@ -135,9 +146,9 @@ handle_call({add, Domain, Certs}, _From,
             {{error, Reason}, ModState0} ->
                 {{error, Reason}, ModState0}
         end,
-    {reply, Reply, State#state{mod_state = ModState}};
+    {reply, Reply, State?SR{mod_state = ModState}};
 handle_call({update, Domain, Certs}, _From,
-            #state{mod = Mod, mod_state = ModState1} = State) ->
+            ?SR{mod = Mod, mod_state = ModState1} = State) ->
     {Reply, ModState} =
         case Mod:update(Domain, Certs, ModState1) of
             {ok, ModState0} ->
@@ -145,9 +156,9 @@ handle_call({update, Domain, Certs}, _From,
             {{error, Reason}, ModState0} ->
                 {{error, Reason}, ModState0}
         end,
-    {reply, Reply, State#state{mod_state = ModState}};
+    {reply, Reply, State?SR{mod_state = ModState}};
 handle_call({upsert, Domain, Certs}, _From,
-            #state{mod = Mod, mod_state = ModState1} = State) ->
+            ?SR{mod = Mod, mod_state = ModState1} = State) ->
     {Reply, ModState} =
         case Mod:upsert(Domain, Certs, ModState1) of
             {ok, ModState0} ->
@@ -155,9 +166,9 @@ handle_call({upsert, Domain, Certs}, _From,
             {{error, Reason}, ModState0} ->
                 {{error, Reason}, ModState0}
         end,
-    {reply, Reply, State#state{mod_state = ModState}};
+    {reply, Reply, State?SR{mod_state = ModState}};
 handle_call({delete, Domain}, _From,
-            #state{mod = Mod, mod_state = ModState1} = State) ->
+            ?SR{mod = Mod, mod_state = ModState1} = State) ->
     {Reply, ModState} =
         case Mod:delete(Domain, ModState1) of
             {ok, ModState0} ->
@@ -165,9 +176,9 @@ handle_call({delete, Domain}, _From,
             {{error, Reason}, ModState0} ->
                 {{error, Reason}, ModState0}
         end,
-    {reply, Reply, State#state{mod_state = ModState}};
+    {reply, Reply, State?SR{mod_state = ModState}};
 handle_call({lookup, Domain}, _From,
-            #state{mod = Mod, mod_state = ModState1,
+            ?SR{mod = Mod, mod_state = ModState1,
                    wallet = undefined} = State) ->
     {Reply, ModState} =
         case Mod:lookup(Domain, ModState1) of
@@ -176,32 +187,41 @@ handle_call({lookup, Domain}, _From,
             {{error, Reason}, ModState0} ->
                 {{error, Reason}, ModState0}
         end,
-    {reply, Reply, State#state{mod_state = ModState}};
+    {reply, Reply, State?SR{mod_state = ModState}};
 handle_call({lookup, Domain}, _From,
-            #state{mod = Mod, mod_state = ModState0,
-                   wallet = Wallet} = State) ->
+            ?SR{mod = Mod,
+                mod_state = ModState0,
+                wallet = Wallet,
+                encrypted = true
+               } = State) ->
     {Reply, ModState} =
         case Mod:lookup(Domain, ModState0) of
             {{ok, Value0}, ModState1} ->
-                case Mod:encrypted(ModState1) of
-                    {true, ModState2} ->
-                        case decrypt(Value0, Domain, Wallet) of
-                            {ok, Value} ->
-                                {Value, ModState2};
-                            {error, Reason} ->
-                                {{error, Reason}, ModState2}
-                        end;
-                    {false, ModState2} ->
-                        {Value0, ModState2}
+                case decrypt(Value0, Domain, Wallet) of
+                    {ok, Value} ->
+                        {Value, ModState1};
+                    {error, Reason} ->
+                        {{error, Reason}, ModState1}
                 end;
             {{error, Reason}, ModState1} ->
                 {{error, Reason}, ModState1}
         end,
-    {reply, Reply, State#state{mod_state = ModState}};
+    {reply, Reply, State?SR{mod_state = ModState}};
+handle_call({lookup, Domain}, _From,
+            ?SR{mod = Mod,
+                mod_state = ModState0
+               } = State) ->
+    {Reply, ModState} =
+        case Mod:lookup(Domain, ModState0) of
+            {{ok, Value0}, ModState1} ->
+                {Value0, ModState1};
+            {{error, Reason}, ModState1} ->
+                {{error, Reason}, ModState1}
+        end,
+    {reply, Reply, State?SR{mod_state = ModState}};
 handle_call(encrypted, _From,
-            #state{mod = Mod, mod_state = ModState} = State) ->
-    {Encrypted, ModState1} = Mod:encrypted(ModState),
-    {reply, Encrypted, State#state{mod_state = ModState1}};
+            ?SR{encrypted = Encrypted} = State) ->
+    {reply, Encrypted, State};
 handle_call(_, _From, State) ->
     {noreply, State}.
 
@@ -214,7 +234,7 @@ handle_info(_, State) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
-terminate(_Reason, #state{mod=Mod, mod_state = ModState}) ->
+terminate(_Reason, ?SR{mod=Mod, mod_state = ModState}) ->
     _ = Mod:terminate(ModState),
     ok.
 
@@ -222,13 +242,17 @@ format_status(_ServerState, [_Pdict, _State]) -> % sys:get_status or crashes
     [{data, [{"State", hidden}]}].
 
 %%% Internal Functions
-
 decrypt(Certs, Domain, Wallet) ->
     {KeyType, EncKey} = proplists:get_value(key, Certs),
-    {ok, Key} = pallet:decrypt_privkey(Wallet, Domain, EncKey),
+    case pallet:decrypt_privkey(Wallet, Domain, EncKey) of
+        {ok, Key} ->
+            %% wrap in OK here to keep apis in place for future error checking
+            {ok, lists:keyreplace(key, 1, Certs, {key, {KeyType, Key}})};
+        {error, Reason} ->
+            {error, Reason}
+    end.
 
-    %% wrap in OK here to keep apis in place for future error checking
-    {ok, lists:keyreplace(key, 1, Certs, {key, {KeyType, Key}})}.
-
+-spec fetch_wallet() -> {ok, pallet:wallet(), binary()}
+                            | {error, any()}.
 fetch_wallet() ->
     pallet:new_wallet().

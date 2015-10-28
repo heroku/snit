@@ -11,7 +11,8 @@
 %% Should pick a proper proxy default to be usable, but we need to be
 %% able to override if only to support proxy protocol at some point.
 %% We could just package all the required modules for easy use.
--spec start(Name::atom(), Acceptors::pos_integer(), inet:port(), fun(), module(), term()) -> ok.
+-spec start(Name::atom(), Acceptors::pos_integer(), inet:port(), fun(), module(), term()) ->
+                   {ok, undefined | pid()}.
 start(Name, Acceptors, ListenPort, SNIFun, Protocol, ProtoOpts) ->
     start(Name, Acceptors, ListenPort, SNIFun, Protocol, ProtoOpts, ranch_ssl).
 

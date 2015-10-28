@@ -7,14 +7,18 @@
          add/3, update/3, upsert/3,
          delete/2,
          lookup/2,
-         encrypted/1,
          terminate/1
         ]).
 
 -define(DB, "certs-db").
 -define(v1, 1:8).
 
+-type snit_bc_store_state() :: reference().
+-export_type([snit_bc_store_state/0]).
+
 %%% behavior callbacks
+-spec init_store([any()]) -> {ok, snit_bc_store_state(), boolean()}
+                           | {error, atom()}.
 init_store(_) ->
     Path = application:get_env(snit, certs_storage_path, "data/"),
 
@@ -26,7 +30,7 @@ init_store(_) ->
         {error, Reason} ->
             {error, Reason};
         Ref ->
-            {ok, Ref}
+            {ok, Ref, true}
     end.
 
 add(Domain, Certs, Ref) ->
@@ -45,8 +49,6 @@ add(Domain, Certs, Ref) ->
                 end
         end,
     {Reply, Ref}.
-
-
 
 update(Domain, Certs, Ref) ->
     Reply =
@@ -72,7 +74,7 @@ upsert(Domain, Certs, Ref) ->
             ok ->
                 ok;
             %% may want to translate reasons for
-        %% better error messages.
+            %% better error messages.
             {error, Reason} ->
                 {error, Reason}
         end,
@@ -80,11 +82,13 @@ upsert(Domain, Certs, Ref) ->
 
 delete(Domain, Ref) ->
     Reply =
-        case bitcask:delete(Ref, Domain) of
+        try bitcask:delete(Ref, Domain) of
             ok ->
-                ok;
-            %% may want to translate reasons for
-            %% better error messages.
+                ok
+        catch
+            %% bitcask:delete always returns 'ok', but could
+            %% throw({error, Reason}). We may want to translate
+            %% Reason for better error messages.
             {error, Reason} ->
                 {error, Reason}
         end,
@@ -103,9 +107,6 @@ lookup(Domain, Ref) ->
                 {error, not_found}
         end,
     {Reply, Ref}.
-
-encrypted(State) ->
-    {true, State}.
 
 terminate(Ref) ->
     _ = bitcask:close(Ref).

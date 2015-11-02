@@ -1,3 +1,5 @@
+[![Build Status](https://magnum.travis-ci.com/heroku/snit.svg?token=uNxDxTYyzRaxPpJGQ5yq&branch=master)](https://magnum.travis-ci.com/heroku/snit)
+
 snit
 =====
 

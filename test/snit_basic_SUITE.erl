@@ -13,15 +13,12 @@ all() ->
 %% run this with both?
 init_per_suite(Config) ->
     random:seed(erlang:unique_integer()),
-    mock_pallet:setup(),
     lager_common_test_backend:bounce(info),
+    snit_test_cert_store:start(),
     {ok, _} = application:ensure_all_started(snit),
-    {ok, Wallet, _Closed} = pallet:new_wallet(),
-    snit_cert_store:set_wallet(Wallet),
-    [{wallet, Wallet} | Config].
+    Config.
 
 end_per_suite(_Config) ->
-    mock_pallet:teardown(),
 	application:stop(snit),
 	ok.
 
@@ -74,34 +71,33 @@ load(Domain, Config) ->
     CaCert = [CCert || {_, CCert, _} <- CaCert1],
     {ok, Key1} = file:read_file(?config(data_dir, Config) ++ "key.pem"),
     [{KeyType, Key0, _}] = public_key:pem_decode(Key1),
-    {ok, Key} = pallet:encrypt_privkey(?config(wallet, Config), Domain, Key0),
 
-    Certs = [{cert, Cert}, {cacerts, CaCert}, {key, {KeyType, Key}}],
-    snit_cert_store:add(Domain, Certs).
+    Certs = [{cert, Cert}, {cacerts, CaCert}, {key, {KeyType, Key0}}],
+    snit_test_cert_store:add(Domain, Certs).
 
 end_per_testcase(connect, _Config) ->
 	snit:stop(connect),
-	snit_cert_store:delete("localhost"),
+	snit_test_cert_store:delete("localhost"),
     timer:sleep(1000),
 	ok;
 end_per_testcase(connect_sni, _Config) ->
 	snit:stop(connect_sni),
-	snit_cert_store:delete("snihost"),
+	snit_test_cert_store:delete("snihost"),
 	ok;
 end_per_testcase(proxy, Config) ->
 	snit:stop(proxy),
 	[shutdown(Pid) || Pid <- ?config(backends, Config)],
-	snit_cert_store:delete("snihost"),
+	snit_test_cert_store:delete("snihost"),
 	ok;
 end_per_testcase(update, Config) ->
 	snit:stop(update),
 	[shutdown(Pid) || Pid <- ?config(backends, Config)],
-	snit_cert_store:delete("update"),
+	snit_test_cert_store:delete("update"),
 	ok;
 end_per_testcase(null, Config) ->
 	snit:stop(null),
 	[shutdown(Pid) || Pid <- ?config(backends, Config)],
-	snit_cert_store:delete("null"),
+	snit_test_cert_store:delete("null"),
 	ok.
 
 connect(Config) ->
@@ -154,7 +150,7 @@ update(Config) ->
 	{ok, S1} = ssl:connect("localhost", 8001,
 						   [{active, true},binary,
 							{server_name_indication, "update"}]),
-	snit_cert_store:update("update", [{certfile, ?config(data_dir, Config) ++ "selfsigned.crt"},
+	snit_test_cert_store:update("update", [{certfile, ?config(data_dir, Config) ++ "selfsigned.crt"},
                                        {keyfile, ?config(data_dir, Config) ++ "selfsigned.key"}]),
 	ssl:send(S1, <<"first">>),
 	{ok, S2} = ssl:connect("localhost", 8001,
@@ -189,7 +185,7 @@ null(Config) ->
 	{ok, S} = ssl:connect("localhost", 8001,
 						  [{active, true},binary,
 						   {server_name_indication, "null"}]),
-	snit_cert_store:delete("null"),
+	snit_test_cert_store:delete("null"),
 	%% The cert is gone, this one fails.
 	{error, _} = ssl:connect("localhost", 8001,
                              [{active, true},binary,
@@ -209,7 +205,7 @@ null(Config) ->
 
 test_sni_fun(SNIHostname) ->
 	lager:debug("sni hostname: ~p", [SNIHostname]),
-	case snit_cert_store:lookup(SNIHostname) of
+	case snit_test_cert_store:lookup(SNIHostname) of
         {error, not_found} ->
             [];
         Certs when is_list(Certs) ->

@@ -1,0 +1,12 @@
+sudo: false
+language: erlang
+addons:
+  ssh_known_hosts: git.herokai.com
+cache:
+  directories:
+  - $HOME/.cache/rebar3/hex/com/amazonaws/s3/s3.hex.pm/tarballs/packages/
+    # - $HOME/.cache/rebar3/rebar3_18.0_plt
+install: "true" # don't let travis run get-deps
+script: "./rebar3 do update,ct,dialyzer"
+otp_release:
+- 18.0

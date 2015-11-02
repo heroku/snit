@@ -10,3 +10,11 @@ install: "true" # don't let travis run get-deps
 script: "./rebar3 do update,ct,dialyzer"
 otp_release:
 - 18.0
+notifications:
+  hipchat:
+    rooms:
+      - 0faf4d5b6ea49b446f2f002682920a@hipchat.itops.herokai.com/cedar-sni
+    template:
+      - '%{repository}#%{build_number} (%{branch} - %{commit} : %{author}): %{message} (<a href="%{build_url}">Details</a>/<a href="%{compare_url}">Change view</a>)'
+    format: html
+  email: false

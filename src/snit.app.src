@@ -6,9 +6,7 @@
   {applications,
    [kernel,
     stdlib,
-    bitcask,
     ssl,
-    pallet,
     ranch
    ]},
   {env,[

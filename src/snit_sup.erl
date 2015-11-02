@@ -29,10 +29,7 @@ start_link() ->
 %% Child :: {Id,StartFunc,Restart,Shutdown,Type,Modules}
 init([]) ->
     {ok, {{one_for_all, 5, 10},
-          [{stores,
-            {snit_store_sup, start_link, []},
-            permanent, 5000, supervisor, [snit_store_sup]}
-          ]}}.
+          []}}.
 
 %%====================================================================
 %% Internal functions

@@ -40,16 +40,44 @@ start_opts(Name, Acceptors, Protocol, ProtoOpts, SSLTransport, SSLOpts0) ->
          %% missing: reuse_session, reuse_sessions
         ],
 
-    SSLOpts = orddict:merge(fun(_K, A, _B) -> A end, SSLOpts0, DefaultOps),
+    SSLOpts = orddict:merge(fun(_K, _A, B) ->
+                                    case _A =/= B of
+                                        true ->
+                                            lager:warning("discarding new value ~p for key ~p as unsafe",
+                                                          [_A, _K]);
+                                        _ -> ok
+                                    end,
+                                    B
+                            end, SSLOpts0, DefaultOps),
 
-    {ok, _} = ranch:start_listener(
-                Name,
-                Acceptors,
-                SSLTransport,
-                SSLOpts,
-                Protocol,
-                ProtoOpts
-               ).
+    case contains(port, SSLOpts) andalso
+        contains(alpn_preferred_protocols, SSLOpts) andalso
+        (contains(sni_fun, SSLOpts) orelse
+         contains(sni_hosts, SSLOpts) orelse
+         contains(cert, SSLOpts) orelse
+         contains(certfile, SSLOpts)) of
+        true ->
+            {ok, _} = ranch:start_listener(
+                        Name,
+                        Acceptors,
+                        SSLTransport,
+                        SSLOpts,
+                        Protocol,
+                        ProtoOpts
+                       );
+        _ ->
+            {error, missing_mandatory_configs}
+    end.
 
 stop(Name) ->
     ranch:stop_listener(Name).
+
+%%% internal functions
+
+contains(Key, Dict) ->
+    case orddict:find(Key, Dict) of
+        {ok, _} ->
+            true;
+        _ ->
+            false
+    end.

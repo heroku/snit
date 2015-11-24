@@ -3,7 +3,7 @@
 %% @end
 %%%-------------------------------------------------------------------
 -module(snit).
--export([start/6, start/7, stop/1]).
+-export([start/6, start/7, start_opts/6, stop/1]).
 
 -include("snit.hrl").
 
@@ -17,21 +17,30 @@ start(Name, Acceptors, ListenPort, SNIFun, Protocol, ProtoOpts) ->
     start(Name, Acceptors, ListenPort, SNIFun, Protocol, ProtoOpts, ranch_ssl).
 
 start(Name, Acceptors, ListenPort, SNIFun, Protocol, ProtoOpts, SSLTransport) ->
+    SSLOpts = [
+               {alpn_preferred_protocols, [?ALPN_HTTP1, ?ALPN_HEROKU_TCP]},
+               {port, ListenPort},
+               {sni_fun, SNIFun}
+              ],
+
+    start_opts(Name, Acceptors, Protocol, ProtoOpts, SSLTransport, SSLOpts).
+
+start_opts(Name, Acceptors, Protocol, ProtoOpts, SSLTransport, SSLOpts0) ->
     Ciphers = [Cipher ||
                   {_Name, Cipher} <-  element(2, application:get_env(snit,
                                                                      cipher_suites))],
-    SSLOpts = [
-               {alpn_preferred_protocols, [?ALPN_HTTP1, ?ALPN_HEROKU_TCP]},
-               {ciphers, Ciphers},
-               {honor_cipher_order, true},
-               {secure_renegotiate, true},
-               {client_renegotiation, false},
-               {port, ListenPort},
-               {max_connections, infinity},
-               {sni_fun, SNIFun},
-               {versions, ['tlsv1.2', 'tlsv1.1', 'tlsv1']}
-               %% missing: reuse_session, reuse_sessions
-              ],
+    DefaultOps =
+        [
+         {ciphers, Ciphers},
+         {honor_cipher_order, true},
+         {secure_renegotiate, true},
+         {client_renegotiation, false},
+         {max_connections, infinity},
+         {versions, ['tlsv1.2', 'tlsv1.1', 'tlsv1']}
+         %% missing: reuse_session, reuse_sessions
+        ],
+
+    SSLOpts = orddict:merge(fun(_K, A, _B) -> A end, SSLOpts0, DefaultOps),
 
     {ok, _} = ranch:start_listener(
                 Name,

@@ -3,7 +3,7 @@
 %% @end
 %%%-------------------------------------------------------------------
 -module(snit).
--export([start/6, start/7, start_opts/6, stop/1]).
+-export([start/6, start/7, start_opts/6, stop/1, contains/2]).
 
 -include("snit.hrl").
 
@@ -66,7 +66,7 @@ start_opts(Name, Acceptors, Protocol, ProtoOpts, SSLTransport, SSLOpts0) ->
                         ProtoOpts
                        );
         _ ->
-            {error, missing_mandatory_configs}
+            {error, missing_mandatory_configs, SSLOpts}
     end.
 
 stop(Name) ->
@@ -75,9 +75,9 @@ stop(Name) ->
 %%% internal functions
 
 contains(Key, Dict) ->
-    case orddict:find(Key, Dict) of
-        {ok, _} ->
-            true;
+    case proplists:get_value(Key, Dict) of
+        undefined ->
+            false;
         _ ->
-            false
+            true
     end.

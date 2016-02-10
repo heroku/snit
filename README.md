@@ -79,6 +79,14 @@ A connection can be debugged and inspected using the `openssl` debug client:
 
     $ openssl s_client -connect snihost.custom:8080 -tls1 -servername -state 2>&1
 
+Configuration
+-------------
+
+To configure which ALPN Protocols Snit prefers, use your `sys.config`
+or `application:set_env(snit, alpn_preferred_protocols, [<<"your protocol here">>])`.
+
+It defaults to `[<<"http/1.1">>]`
+
 
 Changelog
 ---------

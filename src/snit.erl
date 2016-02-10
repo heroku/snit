@@ -18,7 +18,6 @@ start(Name, Acceptors, ListenPort, SNIFun, Protocol, ProtoOpts) ->
 
 start(Name, Acceptors, ListenPort, SNIFun, Protocol, ProtoOpts, SSLTransport) ->
     SSLOpts = [
-               {alpn_preferred_protocols, [?ALPN_HTTP1, ?ALPN_HEROKU_TCP]},
                {port, ListenPort},
                {sni_fun, SNIFun}
               ],
@@ -29,8 +28,12 @@ start_opts(Name, Acceptors, Protocol, ProtoOpts, SSLTransport, SSLOpts0) ->
     Ciphers = [Cipher ||
                   {_Name, Cipher} <-  element(2, application:get_env(snit,
                                                                      cipher_suites))],
+
+    ALPN = application:get_env(snit, alpn_preferred_protocols, [?ALPN_HTTP1]),
+
     DefaultOps =
         [
+         {alpn_preferred_protocols, ALPN},
          {ciphers, Ciphers},
          {honor_cipher_order, true},
          {secure_renegotiate, true},

@@ -28,7 +28,9 @@ check_ciphers() ->
     {ok, Requirements} = application:get_env(snit, cipher_suites),
     Ciphers = [Suite || {_Name, Suite} <- Requirements],
     Supported = ssl:cipher_suites(erlang),
-    case [Cipher || Cipher <- Ciphers, not lists:member(Cipher, Supported)] of
+    CipherCheck = fun(Cipher) -> lists:member(Cipher, Supported) end,
+    case [CipherList || CipherList <- Ciphers,
+                        not lists:any(CipherCheck, CipherList)] of
         [] ->
             ok;
         Unsupported ->

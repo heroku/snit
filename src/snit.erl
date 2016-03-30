@@ -25,9 +25,16 @@ start(Name, Acceptors, ListenPort, SNIFun, Protocol, ProtoOpts, SSLTransport) ->
     start_opts(Name, Acceptors, Protocol, ProtoOpts, SSLTransport, SSLOpts).
 
 start_opts(Name, Acceptors, Protocol, ProtoOpts, SSLTransport, SSLOpts0) ->
+    %% We know there's gonna be one valid cipher in each of the sublists because
+    %% of snit_app.erl, which does a boot check. The options we get here (`CipherList')
+    %% may contain more than one definition of each cipher for compatibility with
+    %% Erlang 18.0-18.2 and 18.3+; we just have to find out which.
+    Supported = ssl:cipher_suites(erlang),
     Ciphers = [Cipher ||
-                  {_Name, Cipher} <-  element(2, application:get_env(snit,
-                                                                     cipher_suites))],
+                  {_Name, CipherList} <- element(2, application:get_env(snit, cipher_suites)),
+                  Cipher <- CipherList,
+                  lists:member(Cipher, Supported)
+              ],
 
     ALPN = application:get_env(snit, alpn_preferred_protocols, [?ALPN_HTTP1]),
 

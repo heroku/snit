@@ -37,25 +37,25 @@ init_per_testcase(connect_sni, Config) ->
     load("snihost", Config),
 	Config;
 init_per_testcase(proxy, Config) ->
-	{ok, Listen} = gen_tcp:listen(0, [{active, false}]),
-	{ok, {{0,0,0,0}, Port}} = inet:sockname(Listen),
 	IP = {127,0,0,1},
+	{ok, Listen} = gen_tcp:listen(0, [{active, false}, {ip, IP}]),
+	{ok, {IP, Port}} = inet:sockname(Listen),
 	Backend = spawn_link(fun() -> accept(Listen) end),
 	snit:start(proxy, 2, 8001, fun test_sni_fun/1, snit_tcp_proxy, [{dest, {IP,Port}}]),
     load("snihost", Config),
 	[{backends, [Backend]} | Config];
 init_per_testcase(update, Config) ->
-	{ok, Listen} = gen_tcp:listen(0, [{active, false}]),
-	{ok, {{0,0,0,0}, Port}} = inet:sockname(Listen),
 	IP = {127,0,0,1},
+	{ok, Listen} = gen_tcp:listen(0, [{active, false}, {ip, IP}]),
+	{ok, {IP, Port}} = inet:sockname(Listen),
 	Backends = [spawn_link(fun() -> accept(Listen) end) || _ <- [1,2]],
 	snit:start(update, 2, 8001, fun test_sni_fun/1, snit_tcp_proxy, [{dest, {IP,Port}}]),
     load("update", Config),
 	[{backends, Backends} | Config];
 init_per_testcase(null, Config) ->
-	{ok, Listen} = gen_tcp:listen(0, [{active, false}]),
-	{ok, {{0,0,0,0}, Port}} = inet:sockname(Listen),
 	IP = {127,0,0,1},
+	{ok, Listen} = gen_tcp:listen(0, [{active, false}, {ip, IP}]),
+	{ok, {IP, Port}} = inet:sockname(Listen),
 	Backends = [spawn_link(fun() -> accept(Listen) end) || _ <- [1,2]],
 	snit:start(null, 2, 8001, fun test_sni_fun/1, snit_tcp_proxy, [{dest, {IP,Port}}]),
 	load("null", Config),

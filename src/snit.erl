@@ -38,9 +38,13 @@ start_opts(Name, Acceptors, Protocol, ProtoOpts, SSLTransport, SSLOpts0) ->
 
     ALPN = application:get_env(snit, alpn_preferred_protocols, [?ALPN_HTTP1]),
 
-    DefaultOps =
+    DefaultOpts =
         [
-         {alpn_preferred_protocols, ALPN},
+         {alpn_preferred_protocols, ALPN}
+        ],
+
+    OverrideOpts =
+        [
          {ciphers, Ciphers},
          {honor_cipher_order, true},
          {secure_renegotiate, true},
@@ -50,15 +54,7 @@ start_opts(Name, Acceptors, Protocol, ProtoOpts, SSLTransport, SSLOpts0) ->
          %% missing: reuse_session, reuse_sessions
         ],
 
-    SSLOpts = orddict:merge(fun(_K, _A, B) ->
-                                    case _A =/= B of
-                                        true ->
-                                            lager:warning("discarding new value ~p for key ~p as unsafe",
-                                                          [_A, _K]);
-                                        _ -> ok
-                                    end,
-                                    B
-                            end, SSLOpts0, DefaultOps),
+    SSLOpts = lists:foldl(fun merge_opts/2,  DefaultOpts, [SSLOpts0, OverrideOpts]),
 
     case contains(port, SSLOpts) andalso
         contains(alpn_preferred_protocols, SSLOpts) andalso
@@ -83,6 +79,19 @@ stop(Name) ->
     ranch:stop_listener(Name).
 
 %%% internal functions
+
+merge_opts(Opts1, Opts2) ->
+    MergeFun = fun(K, A, B) ->
+                          case A =/= B of
+                              true ->
+                                  lager:warning("discarding value ~p for key ~p", [B, K]);
+                              _ -> ok
+                          end,
+                          A
+                  end,
+    OrdOpts1 = orddict:from_list(Opts1),
+    OrdOpts2 = orddict:from_list(Opts2),
+    orddict:merge(MergeFun, OrdOpts1, OrdOpts2).
 
 contains(Key, Dict) ->
     case proplists:get_value(Key, Dict) of

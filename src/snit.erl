@@ -45,6 +45,9 @@ start_opts(Name, Acceptors, Protocol, ProtoOpts, SSLTransport, SSLOpts0) ->
 
     OverrideOpts =
         [
+         %% erlang currently does not support compression.
+         %% If it ever does, disable it here to prevent CRIME and BREACH
+         %% attacks.
          {ciphers, Ciphers},
          {honor_cipher_order, true},
          {secure_renegotiate, true},

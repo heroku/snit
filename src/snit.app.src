@@ -80,9 +80,6 @@
          [{rsa,aes_256_cbc,sha256}]},
         {"AES256-SHA",
          [{rsa,aes_256_cbc,sha}]}
-        % missing pre-18.3
-        % {"DES-CBC3-SHA",
-        %  [{rsa,'3des_ede_cbc',sha}]}
     ]}
   ]},
   {modules, []}

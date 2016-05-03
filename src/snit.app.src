@@ -45,6 +45,10 @@
     {cipher_suites, [
         {"ECDHE-ECDSA-AES256-GCM-SHA384",
          [{ecdhe_ecdsa,aes_256_gcm,null}, {ecdhe_ecdsa,aes_256_gcm,null,sha384}]},
+        {"ECDHE-ECDSA-AES128-GCM-SHA256",
+         [{ecdhe_ecdsa,aes_128_gcm,null}, {ecdhe_ecdsa,aes_128_gcm,null,sha256}]},
+        {"ECDHE-RSA-AES128-GCM-SHA256",
+         [{ecdhe_rsa,aes_128_gcm,null}, {ecdhe_rsa,aes_128_gcm,null,sha256}]},
         % missing pre-18.3
         % {"ECDHE-RSA-AES256-GCM-SHA384",
         %  [{ecdhe_rsa,aes_256_gcm,null}, {ecdhe_rsa,aes_256_gcm,null,sha384}]}
@@ -56,10 +60,6 @@
          [{ecdhe_rsa,aes_256_cbc,sha}]},
         {"ECDHE-ECDSA-AES256-SHA",
          [{ecdhe_ecdsa,aes_256_cbc,sha}]},
-        {"ECDHE-ECDSA-AES128-GCM-SHA256",
-         [{ecdhe_ecdsa,aes_128_gcm,null}, {ecdhe_ecdsa,aes_128_gcm,null,sha256}]},
-        {"ECDHE-RSA-AES128-GCM-SHA256",
-         [{ecdhe_rsa,aes_128_gcm,null}, {ecdhe_rsa,aes_128_gcm,null,sha256}]},
         {"ECDHE-ECDSA-AES128-SHA256",
          [{ecdhe_ecdsa,aes_128_cbc,sha256}, {ecdhe_ecdsa,aes_128_cbc,sha256,sha256}]},
         {"ECDHE-RSA-AES128-SHA256",

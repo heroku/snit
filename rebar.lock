@@ -1,6 +1,12 @@
-[{<<"goldrush">>,{pkg,<<"goldrush">>,<<"0.1.7">>},1},
- {<<"lager">>,{pkg,<<"lager">>,<<"2.1.1">>},0},
+{"1.1.0",
+[{<<"goldrush">>,{pkg,<<"goldrush">>,<<"0.1.8">>},1},
+ {<<"lager">>,{pkg,<<"lager">>,<<"3.2.1">>},0},
  {<<"ranch">>,
   {git,"https://github.com/heroku/ranch.git",
        {ref,"cb1b7bd43d079b79a734ba5169d4cb221c237815"}},
-  0}].
+  0}]}.
+[
+{pkg_hash,[
+ {<<"goldrush">>, <<"2024BA375CEEA47E27EA70E14D2C483B2D8610101B4E852EF7F89163CDB6E649">>},
+ {<<"lager">>, <<"EEF4E18B39E4195D37606D9088EA05BF1B745986CF8EC84F01D332456FE88D17">>}]}
+].

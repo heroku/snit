@@ -12,7 +12,6 @@ all() ->
 
 %% run this with both?
 init_per_suite(Config) ->
-    random:seed(erlang:unique_integer()),
     lager_common_test_backend:bounce(info),
     snit_test_cert_store:start(),
     {ok, _} = application:ensure_all_started(snit),

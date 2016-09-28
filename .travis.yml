@@ -11,6 +11,7 @@ script: "./rebar3 do update,ct,dialyzer"
 otp_release:
 - 18.0
 - 18.2
+- 19.1
 notifications:
   hipchat:
     rooms:

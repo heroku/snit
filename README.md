@@ -91,4 +91,4 @@ It defaults to `[<<"http/1.1">>]`
 Changelog
 ---------
 
-Nothing's stable. Nor working.
+- 0.3.2: ECC curve selection

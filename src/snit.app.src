@@ -80,7 +80,45 @@
          [{rsa,aes_128_cbc,sha256}]},
         {"AES128-SHA",
          [{rsa,aes_128_cbc,sha}]}
-    ]}
+    ]},
+    %% This configuration is only loaded in OTP versions 19.2 and above (based
+    %% on the availability of the `ssl:eccs/0' function, added in that release)
+    %% since it was not supported before then.
+    %%
+    %% By default, the list of ECCs returned by Erlang/OTP favours strong curve
+    %% with 512 bits, which turn out to have a significant impact on handshake
+    %% time, nearly doubling it.
+    %%
+    %% By default, our "sane" configuration is the result of calling
+    %% `ssl:eccs()' and then reordering the curves to favor 256 bit curves
+    %% above 512 bit ones, and always picking `secp256r1' to be the first
+    %% one considered, which matches what ELBs do. The favored order here is
+    %% therefore 256 bits > 384 bits > Others in original order
+    %%
+    %% To generate a newer version of this config, run:
+    %%
+    %%     f(First), f(Priorities), f(PriFind), f(Sorted), f(ECCs),
+    %%     First = [secp256r1], Priorities = [256,384],
+    %%     PriFind = fun(X) -> -length(lists:takewhile(fun(Y) -> X =/= Y end, Priorities)) end,
+    %%     Sorted = lists:sort(
+    %%         fun({_, X}, {_, Y}) -> PriFind(X) >= PriFind(Y) end,
+    %%         [{ECC, N} || ECC <- ssl:eccs(),
+    %%                      N <- [case re:run(atom_to_list(ECC), "([0-9]{3})", [{capture, [1], list}]) of
+    %%                                {match, [Bits]} -> list_to_integer(Bits);
+    %%                                 _ -> undefined
+    %%                            end]]),
+    %%     ECCs = First ++ ([X || {X,_} <- Sorted] -- First).
+    %%
+    %%  The second line of the command contains the config for priorities of
+    %%  curves and then just key sizes. Any undefined key size that is not
+    %%  found in the `Priorities' list will be appended to the list in
+    %%  its original order.
+    {eccs, [secp256r1,brainpoolP256r1,secp256k1,brainpoolP384r1,
+            secp384r1,brainpoolP512r1,sect571r1,sect571k1,secp521r1,
+            sect409k1,sect409r1,sect283k1,sect283r1,sect239k1,sect233k1,
+            sect233r1,secp224k1,secp224r1,sect193r1,sect193r2,secp192k1,
+            secp192r1,sect163k1,sect163r1,sect163r2,secp160k1,secp160r1,
+            secp160r2]}
   ]},
   {modules, []}
  ]}.

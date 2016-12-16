@@ -35,6 +35,18 @@ start_opts(Name, Acceptors, Protocol, ProtoOpts, SSLTransport, SSLOpts0) ->
                   Cipher <- CipherList,
                   lists:member(Cipher, Supported)
               ],
+    ECCs = case ssl_eccs0_supported() of
+               true ->
+                   case application:get_env(snit, eccs) of
+                       undefined ->
+                           [];
+                       ConfECCs ->
+                           [{eccs, ConfECCs},
+                            {honor_ecc_order, true}]
+                   end;
+               false -> % ssl < 19.2
+                   []
+           end,
 
     ALPN = application:get_env(snit, alpn_preferred_protocols, [?ALPN_HTTP1]),
 
@@ -55,7 +67,7 @@ start_opts(Name, Acceptors, Protocol, ProtoOpts, SSLTransport, SSLOpts0) ->
          {max_connections, infinity},
          {versions, ['tlsv1.2', 'tlsv1.1', 'tlsv1']}
          %% missing: reuse_session, reuse_sessions
-        ],
+        ] ++ ECCs,
 
     SSLOpts = lists:foldl(fun merge_opts/2,  DefaultOpts, [SSLOpts0, OverrideOpts]),
 
@@ -102,4 +114,15 @@ contains(Key, Dict) ->
             false;
         _ ->
             true
+    end.
+
+%% check if ECCs can be configured
+-dialyzer({nowarn_function, ssl_eccs0_supported/0}).
+ssl_eccs0_supported() ->
+    try
+        _ = ssl:eccs(),
+        true
+    catch
+        error:undef ->
+            false
     end.

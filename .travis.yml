@@ -1,7 +1,7 @@
 sudo: false
 language: erlang
 addons:
-  ssh_known_hosts: git.herokai.com
+  ssh_known_hosts: git.herokai.com:2222
 cache:
   directories:
   - $HOME/.cache/rebar3/hex/com/amazonaws/s3/s3.hex.pm/tarballs/packages/

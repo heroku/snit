@@ -3,4 +3,3 @@
 -define(ALPN_SPDY1, <<"spdy/1">>).
 -define(ALPN_SPDY2, <<"spdy/2">>).
 -define(ALPN_SPDY3, <<"spdy/3">>).
--define(ALPN_HEROKU_TCP, <<"htcp1">>).

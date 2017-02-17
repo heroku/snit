@@ -129,7 +129,7 @@ merge_opts(Opts1, Opts2) ->
     MergeFun = fun(K, A, B) ->
                           case A =/= B of
                               true ->
-                                  lager:warning("discarding value ~p for key ~p", [B, K]);
+                                  error_logger:warning_msg("snit discarding value ~p for key ~p", [B, K]);
                               _ -> ok
                           end,
                           A

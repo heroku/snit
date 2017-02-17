@@ -45,7 +45,7 @@ init(Ref, Socket, Transport, _Opts = []) ->
 loop(Socket, Transport) ->
     case Transport:recv(Socket, 0, 5000) of
         {ok, Data} ->
-            lager:info("snit echo got ~p", [Data]),
+            error_logger:info_msg("snit echo got ~p", [Data]),
             Transport:send(Socket, Data),
             loop(Socket, Transport);
         _ ->

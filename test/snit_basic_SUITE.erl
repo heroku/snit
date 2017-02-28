@@ -12,7 +12,6 @@ all() ->
 
 %% run this with both?
 init_per_suite(Config) ->
-    lager_common_test_backend:bounce(info),
     snit_test_cert_store:start(),
     {ok, _} = application:ensure_all_started(snit),
     Config.
@@ -106,7 +105,7 @@ connect(Config) ->
 		{ssl, S, <<"first">>} ->
 			ok;
 		Else ->
-			lager:info("else ~p", [Else]),
+			error_logger:info_msg("else ~p", [Else]),
 			error(unexpected_message)
 	after 500 ->
 			error(timeout)
@@ -122,7 +121,7 @@ connect_sni(Config) ->
 		{ssl, S, <<"first">>} ->
 			ok;
 		Else ->
-			lager:info("else ~p", [Else]),
+			error_logger:info_msg("else ~p", [Else]),
 			error(unexpected_message)
 	after 500 ->
 			error(timeout)
@@ -138,7 +137,7 @@ proxy(Config) ->
 		{ssl, S, <<"returned: first">>} ->
 			ok;
 		Else ->
-			lager:info("else ~p", [Else]),
+			error_logger:info_msg("else ~p", [Else]),
 			error({unexpected_message, Else})
 	after 500 ->
 			error(timeout)
@@ -167,13 +166,13 @@ update(Config) ->
 					[<<"first">>, <<"second">>] = lists:sort([Msg1, Msg2]),
 					ok;
 				Else ->
-					lager:info("else ~p", [Else]),
+					error_logger:info_msg("else ~p", [Else]),
 					error({unexpected_message, Else})
 			after 500 ->
 					error(timeout)
 			end;
 		Else ->
-			lager:info("else ~p", [Else]),
+			error_logger:info_msg("else ~p", [Else]),
 			error({unexpected_message, Else})
 	after 500 ->
 			error(timeout)
@@ -195,7 +194,7 @@ null(Config) ->
 		{ssl, S, <<"returned: first">>} ->
 			ok;
 		Else ->
-			lager:info("else ~p", [Else]),
+			error_logger:info_msg("else ~p", [Else]),
 			error(unexpected_message)
 	after 500 ->
 			error(timeout)
@@ -203,7 +202,7 @@ null(Config) ->
 	Config.
 
 test_sni_fun(SNIHostname) ->
-	lager:debug("sni hostname: ~p", [SNIHostname]),
+	error_logger:info_msg("sni hostname: ~p", [SNIHostname]),
 	case snit_test_cert_store:lookup(SNIHostname) of
         {error, not_found} ->
             [];
@@ -218,7 +217,7 @@ accept(Listen) ->
 loop(Sock) ->
 	case gen_tcp:recv(Sock, 0, 5000) of
 		{ok, Data} ->
-			lager:info("tcp test loop: ~p", [Data]),
+            error_logger:info_msg("tcp test loop: ~p", [Data]),
 			ok = gen_tcp:send(Sock, ["returned: ", Data]),
 			loop(Sock);
 		{error, closed} ->

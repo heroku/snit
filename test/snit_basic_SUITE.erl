@@ -238,7 +238,7 @@ loop(Sock) ->
 	case gen_tcp:recv(Sock, 0, 5000) of
 		{ok, Data} ->
             error_logger:info_msg("tcp test loop: ~p", [Data]),
-			ok = gen_tcp:send(Sock, ["returned: ", Data]),
+		ok = gen_tcp:send(Sock, ["returned: ", Data]),
 			loop(Sock);
 		{error, closed} ->
 			exit(normal)

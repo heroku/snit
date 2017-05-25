@@ -13,6 +13,7 @@ otp_release:
 - 18.2
 - 19.1
 - 19.2
+- 19.3
 notifications:
   hipchat:
     rooms:

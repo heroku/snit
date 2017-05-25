@@ -2,13 +2,14 @@
 
 -compile(export_all).
 
+-include_lib("eunit/include/eunit.hrl").
 -include_lib("common_test/include/ct.hrl").
 
 groups() ->
 	[].
 
 all() ->
-	[connect, connect_sni, proxy, update, null].
+	[connect, connect_sni, proxy, update, null, eccs].
 
 %% run this with both?
 init_per_suite(Config) ->
@@ -96,6 +97,9 @@ end_per_testcase(null, Config) ->
 	snit:stop(null),
 	[shutdown(Pid) || Pid <- ?config(backends, Config)],
 	snit_test_cert_store:delete("null"),
+	ok;
+end_per_testcase(eccs, _Config) ->
+	snit:stop(eccs),
 	ok.
 
 connect(Config) ->
@@ -201,6 +205,22 @@ null(Config) ->
 	end,
 	Config.
 
+eccs(Config) ->
+	%% These SSLOpts have no 'port', so this will fail. How it fails is what's
+	%% important
+	SSLOpts = [{sni_fun, fun test_sni_fun/1}],
+	{error, missing_mandatory_configs, ReturnedSSLOpts} =
+		snit:start_opts(eccs, 2, snit_echo, [], ranch_ssl, SSLOpts),
+	case snit:ssl_eccs0_supported() of
+    true ->
+			{ok, Expected} = application:get_env(snit, eccs),
+			Actual = proplists:get_value(eccs, ReturnedSSLOpts),
+			?assertEqual(Actual, Expected);
+		false ->
+			undefined = proplists:get_value(eccs, ReturnedSSLOpts)
+		end,
+	Config.
+
 test_sni_fun(SNIHostname) ->
 	error_logger:info_msg("sni hostname: ~p", [SNIHostname]),
 	case snit_test_cert_store:lookup(SNIHostname) of
@@ -218,7 +238,7 @@ loop(Sock) ->
 	case gen_tcp:recv(Sock, 0, 5000) of
 		{ok, Data} ->
             error_logger:info_msg("tcp test loop: ~p", [Data]),
-			ok = gen_tcp:send(Sock, ["returned: ", Data]),
+		ok = gen_tcp:send(Sock, ["returned: ", Data]),
 			loop(Sock);
 		{error, closed} ->
 			exit(normal)

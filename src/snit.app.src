@@ -43,10 +43,10 @@
     %% Note that the OpenSSL translation layer is seen as there for backwards-
     %% compatibility reasons by the OTP team and may eventually be deprecated.
     {cipher_suites, [
-        {"ECDHE-ECDSA-AES256-GCM-SHA384",
-         [{ecdhe_ecdsa,aes_256_gcm,null}, {ecdhe_ecdsa,aes_256_gcm,null,sha384}]},
         {"ECDHE-ECDSA-AES128-GCM-SHA256",
          [{ecdhe_ecdsa,aes_128_gcm,null}, {ecdhe_ecdsa,aes_128_gcm,null,sha256}]},
+        {"ECDHE-ECDSA-AES256-GCM-SHA384",
+         [{ecdhe_ecdsa,aes_256_gcm,null}, {ecdhe_ecdsa,aes_256_gcm,null,sha384}]},
         {"ECDHE-RSA-AES128-GCM-SHA256",
          [{ecdhe_rsa,aes_128_gcm,null}, {ecdhe_rsa,aes_128_gcm,null,sha256}]},
         % missing pre-18.3

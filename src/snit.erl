@@ -63,7 +63,7 @@ start_opts(Name, Acceptors, Protocol, ProtoOpts, SSLTransport, SSLOpts0) ->
     %% of snit_app.erl, which does a boot check. The options we get here (`CipherList')
     %% may contain more than one definition of each cipher for compatibility with
     %% Erlang 18.0-18.2 and 18.3+; we just have to find out which.
-    Supported = ssl:cipher_suites(erlang),
+    Supported = snit_util:supported(),
     Ciphers = [Cipher ||
                   {_Name, CipherList} <- element(2, application:get_env(snit, cipher_suites)),
                   Cipher <- CipherList,

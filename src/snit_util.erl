@@ -30,7 +30,7 @@
 %%% OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -module(snit_util).
 
--export([validate/1]).
+-export([validate/1, supported/0]).
 
 validate(Certs) ->
     try
@@ -48,3 +48,16 @@ validate(Certs) ->
     catch _:_ ->
             invalid
     end.
+
+supported() ->
+    ssl:module_info(), % force load if not there
+    case erlang:function_exported(ssl, cipher_suites, 2) of
+        true -> % OTP-21 and above
+            Vsns = ['tlsv1.2', 'tlsv1.1', 'tlsv1'],
+            lists:usort(lists:append(
+                [ssl:cipher_suites(all, Vsn) || Vsn <- Vsns]
+            ));
+        false -> % OTP-20 and below
+            ssl:cipher_suites(erlang)
+    end.
+

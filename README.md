@@ -109,6 +109,7 @@ On top of a strong rationale, we also expect:
 Changelog
 ---------
 
+- 1.0.1: adding OTP-21 support
 - 1.0.0: open-source release
 - 0.3.2: ECC curve selection
 - ?.?.?: whole lot of stuff

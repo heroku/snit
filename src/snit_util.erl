@@ -49,15 +49,12 @@ validate(Certs) ->
             invalid
     end.
 
+-ifdef(OLD_CIPHERSUITES).
 supported() ->
-    ssl:module_info(), % force load if not there
-    case erlang:function_exported(ssl, cipher_suites, 2) of
-        true -> % OTP-21 and above
-            Vsns = ['tlsv1.2', 'tlsv1.1', 'tlsv1'],
-            lists:usort(lists:append(
-                [ssl:cipher_suites(all, Vsn) || Vsn <- Vsns]
-            ));
-        false -> % OTP-20 and below
-            ssl:cipher_suites(erlang)
-    end.
+    ssl:cipher_suites(erlang).
+-else.
+supported() ->
+    Vsns = ['tlsv1.2', 'tlsv1.1', 'tlsv1'],
+    lists:usort(lists:append([ssl:cipher_suites(all, Vsn) || Vsn <- Vsns])).
+-endif.
 

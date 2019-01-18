@@ -57,7 +57,7 @@ stop(_State) ->
 check_ciphers() ->
     {ok, Requirements} = application:get_env(snit, cipher_suites),
     Ciphers = [Suite || {_Name, Suite} <- Requirements],
-    Supported = ssl:cipher_suites(erlang),
+    Supported = snit_util:supported(),
     CipherCheck = fun(Cipher) -> lists:member(Cipher, Supported) end,
     case [CipherList || CipherList <- Ciphers,
                         not lists:any(CipherCheck, CipherList)] of

@@ -1,0 +1,23 @@
+%% Extract current config
+[{application, App, Cfg}] = CONFIG,
+
+%% Grab app env vals
+Env = proplists:get_value(env, Cfg, []),
+
+%% Ensure SSL is loaded and grab the right pre-built config for ciphersuites
+ssl:module_info(),
+Suites = case erlang:function_exported(ssl, cipher_suites, 2) of
+    true -> %% OTP 21 and above
+        proplists:get_value(cipher_suites_21, Env, []);
+    false -> %% OTP 20, 19, and 18.3
+        proplists:get_value(cipher_suites_18, Env, [])
+end,
+
+%% Rebuild the env
+NewEnv = lists:keyreplace(cipher_suites, 1, Env, {cipher_suites, Suites}),
+
+%% Rebuild the config
+NewCfg = lists:keyreplace(env, 1, Cfg, {env, NewEnv}),
+
+%% Return the modified app value
+[{application, App, NewCfg}].

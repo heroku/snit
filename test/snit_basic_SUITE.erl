@@ -8,7 +8,8 @@
 groups() -> [].
 
 all() ->
-  [connect, connect_sni, proxy, update, null, eccs].
+  [connect, connect_sni, proxy, update, null, eccs,
+   version_cfg].
 
 %% run this with both?
 init_per_suite(Config) ->
@@ -58,6 +59,18 @@ init_per_testcase(null, Config) ->
   snit:start(null, 2, 8001, fun test_sni_fun/1, snit_tcp_proxy, [{dest, {IP,Port}}]),
   load("null", Config),
   [{backends, Backends} | Config];
+init_per_testcase(version_cfg, Config) ->
+  IP = {127,0,0,1},
+  {ok, Listen} = gen_tcp:listen(0, [{active, false}, {ip, IP}]),
+  {ok, {IP, Port}} = inet:sockname(Listen),
+  Backend = spawn_link(fun() -> accept(Listen) end),
+  snit:start_opts(
+    version_cfg, 2, snit_tcp_proxy, [{dest, {IP,Port}}], ranch_ssl,
+    [{port, 8001}, {sni_fun, fun test_sni_fun/1},
+     {versions, ['tlsv1.2']}]
+  ),
+  load("snihost", Config),
+  [{backends, [Backend]} | Config];
 init_per_testcase(_TestCase, Config) ->
   Config.
 
@@ -99,6 +112,11 @@ end_per_testcase(null, Config) ->
   ok;
 end_per_testcase(eccs, _Config) ->
   snit:stop(eccs),
+  ok;
+end_per_testcase(version_cfg, Config) ->
+  snit:stop(version_cfg),
+  [shutdown(Pid) || Pid <- ?config(backends, Config)],
+  snit_test_cert_store:delete("snihost"),
   ok.
 
 connect(Config) ->
@@ -218,6 +236,16 @@ eccs(Config) ->
     false ->
       undefined = proplists:get_value(eccs, ReturnedSSLOpts)
     end,
+  Config.
+
+version_cfg(Config) ->
+  %% Custom TLS version sets can be specified, overriding the default
+  %% set that still contains 'tlsv1'
+  Res = ssl:connect("localhost", 8001,
+                    [{active, true},binary,
+                     {versions, ['tlsv1.1']},
+                     {server_name_indication, "snihost"}]),
+  ?assertMatch({error, {tls_alert, "protocol version"}}, Res),
   Config.
 
 test_sni_fun(SNIHostname) ->

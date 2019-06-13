@@ -10,7 +10,6 @@ It provides a set of options that make it safe to set up a public-facing Erlang/
 - Setting up a general security policy (based on Mozilla's and AWS) for cipher suites and their ordering
 - Prioritizing ECCs to be performant and matching other industry players
 - Disabling client-initiated renegotiations, and mandating secure one otherwise
-- Restricting the set of allowed TLS/SSL versions (TLS 1.0 still allowed)
 
 Build
 -----
@@ -109,6 +108,7 @@ On top of a strong rationale, we also expect:
 Changelog
 ---------
 
+- 1.0.2: allowing to specify versions rather than enforce them (i.e. disable tlv1), but switch the previous versions to defaults
 - 1.0.1: adding OTP-21 support
 - 1.0.0: open-source release
 - 0.3.2: ECC curve selection

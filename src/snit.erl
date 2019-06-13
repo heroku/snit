@@ -86,7 +86,8 @@ start_opts(Name, Acceptors, Protocol, ProtoOpts, SSLTransport, SSLOpts0) ->
 
     DefaultOpts =
         [
-         {alpn_preferred_protocols, ALPN}
+         {alpn_preferred_protocols, ALPN},
+         {versions, ['tlsv1.2', 'tlsv1.1', 'tlsv1']}
         ],
 
     OverrideOpts =
@@ -98,8 +99,10 @@ start_opts(Name, Acceptors, Protocol, ProtoOpts, SSLTransport, SSLOpts0) ->
          {honor_cipher_order, true},
          {secure_renegotiate, true},
          {client_renegotiation, false},
-         {max_connections, infinity},
-         {versions, ['tlsv1.2', 'tlsv1.1', 'tlsv1']}
+         {max_connections, infinity}
+         %% Don't override versions since someone might want something
+         %% stricter than what is defined here.
+         % {versions, ['tlsv1.2', 'tlsv1.1', 'tlsv1']}
          %% missing: reuse_session, reuse_sessions
         ] ++ ECCs,
 
